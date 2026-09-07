@@ -1,0 +1,66 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 826 >>
+stream
+BT
+/F1 16 Tf
+50 780 Td
+(FATURA) Tj
+/F1 10 Tf
+0 -30 Td
+(Fornecedor: Papelaria Ficticia Unipessoal, Lda.) Tj
+0 -14 Td
+(NIF: 501442600) Tj
+0 -14 Td
+(IBAN: PT50000201231234567890154) Tj
+0 -14 Td
+(Rua Inventada 123, 1000-001 Lisboa) Tj
+0 -28 Td
+(Numero: FT 2026A/00147) Tj
+0 -14 Td
+(Data de emissao: 2026-09-03) Tj
+0 -14 Td
+(Data de vencimento: 2026-10-03) Tj
+0 -14 Td
+(Moeda: EUR) Tj
+0 -28 Td
+(Cliente: Excel Consulting, Lda.   NIF: 500084580) Tj
+0 -28 Td
+(DESCRICAO) Tj
+0 -22 Td
+(Servicos de consultoria - Setembro) Tj 0 -16 Td (Qtd: 5   Preco unit: 220,00 EUR   IVA: 23%   Total: 1100,00 EUR) Tj 0 -22 Td
+(Deslocacoes) Tj 0 -16 Td (Qtd: 1   Preco unit: 85,50 EUR   IVA: 23%   Total: 85,50 EUR) Tj 0 -22 Td
+0 -10 Td
+(Base tributavel: 1185,50 EUR) Tj
+0 -14 Td
+(IVA (23%): 272,67 EUR) Tj
+0 -14 Td
+(TOTAL A PAGAR: 1458,16 EUR) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001118 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1188
+%%EOF

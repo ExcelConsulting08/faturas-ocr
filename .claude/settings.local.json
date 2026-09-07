@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell($paths = @\\(\"$env:ProgramFiles\\\\nodejs\\\\node.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\nodejs\\\\node.exe\", \"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\node.exe\", \"$env:APPDATA\\\\npm\\\\node.exe\", \"$env:LOCALAPPDATA\\\\nvm\\\\node.exe\", \"$env:USERPROFILE\\\\scoop\\\\shims\\\\node.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { \"FOUND: $p\" } }; \"--- nvm dirs ---\"; if \\(Test-Path \"$env:APPDATA\\\\nvm\"\\) { Get-ChildItem \"$env:APPDATA\\\\nvm\" -Directory | Select-Object -ExpandProperty Name }; \"--- winget/choco node ---\"; if \\(Test-Path \"C:\\\\ProgramData\\\\chocolatey\\\\bin\\\\node.exe\"\\) { \"choco node found\" })",
+      "PowerShell(npm install 2>&1)",
+      "PowerShell(npm install @supabase/supabase-js @supabase/ssr @anthropic-ai/sdk zod recharts date-fns clsx tailwind-merge class-variance-authority lucide-react react-hook-form \"@hookform/resolvers\" sonner \"@azure/msal-node\" pdfjs-dist sharp papaparse archiver 2>&1)",
+      "PowerShell(npm install -D \"@types/papaparse\" \"@types/archiver\" tsx 2>&1)",
+      "PowerShell(npm install server-only 2>&1)",
+      "PowerShell(npx tsc --noEmit 2>&1)",
+      "PowerShell($env:NEXT_PUBLIC_SUPABASE_URL=\"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY=\"placeholder\"; npm run build 2>&1 | Select-Object -Last 45)",
+      "PowerShell(npx tsx scripts/verify-core.ts 2>&1)",
+      "PowerShell(npx eslint . 2>&1)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"--- build ---\"; $env:NEXT_PUBLIC_SUPABASE_URL=\"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY=\"placeholder\"; npm run build 2>&1 | Select-Object -Last 28)",
+      "PowerShell(Get-Content \"supabase\\\\migrations\\\\0001_init.sql\" -Raw | Set-Clipboard; \"Copiado. Caracteres: \" + \\(Get-Content \"supabase\\\\migrations\\\\0001_init.sql\" -Raw\\).Length)",
+      "PowerShell(Start-Process notepad.exe -ArgumentList \".env.local\")",
+      "PowerShell(npx tsx --env-file=.env.local scripts/confirm-user.ts teste@excelconsulting.pt 2>&1)",
+      "PowerShell(npx tsx scripts/make-fixture.ts 2>&1)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"scripts\\\\fixtures\\\\fatura-exemplo.pdf\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); \"Tamanho: $\\($bytes.Length\\) bytes\"; Set-Content -Path \"$env:TEMP\\\\fixture-b64.txt\" -Value $b64 -NoNewline; \"Base64 guardado \\($\\($b64.Length\\) caracteres\\)\")",
+      "PowerShell(npx tsx -e \"import {isValidPortugueseNif} from './lib/validators/nif'; for \\(const n of ['500000000','501442600','999999990','508765432']\\) console.log\\(n, isValidPortugueseNif\\(n\\)\\);\" 2>&1)",
+      "mcp__visualize__read_me",
+      "PowerShell(npm install @google/genai 2>&1)",
+      "PowerShell(npm uninstall @anthropic-ai/sdk 2>&1)",
+      "PowerShell(npx tsx --env-file=.env.local scripts/list-models.ts 2>&1)",
+      "PowerShell(npx tsx --env-file=.env.local scripts/test-gemini.ts gemini-2.5-flash gemini-flash-latest gemini-2.5-flash-lite 2>&1)",
+      "PowerShell(npx tsx --env-file=.env.local scripts/test-gemini.ts gemini-3.6-flash gemini-3.5-flash gemini-3.5-flash-lite 2>&1)"
+    ]
+  }
+}

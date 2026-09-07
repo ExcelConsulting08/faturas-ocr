@@ -1,0 +1,155 @@
+# Gestão de Faturas com OCR
+
+Aplicação de gestão de faturas de fornecedores com extração automática de dados, arquivo em
+SharePoint e recolha automática a partir de caixas de correio por país.
+
+## O que faz
+
+- **Upload manual** de faturas (PDF, JPG, PNG, WebP, HEIC, TIFF até 20MB)
+- **Recolha automática por email**: uma caixa Microsoft 365 por país, lida de minuto a minuto; a
+  caixa determina o país da fatura
+- **Extração por OCR** com Gemini Flash: fornecedor, NIF, IBAN, número, datas, linhas e totais
+- **Validação determinística**: checksum de NIF português, IBAN (mod-97) e coerência de datas,
+  combinados com a confiança do modelo para decidir se a fatura segue automaticamente ou vai para
+  revisão
+- **Deteção de duplicados** por fornecedor + número + total
+- **Centros de custo** com regras automáticas por fornecedor
+- **Dashboard** com gastos por mês, por estado, por centro de custo, por país e resumo de IVA
+- **Arquivo no SharePoint** da empresa, organizado por organização / país / ano / mês
+- **Integração ERP** por webhook assinado (HMAC-SHA256)
+- **Gestão de utilizadores própria**, independente do Microsoft: papéis admin/membro/leitor
+
+## Arranque rápido
+
+### 1. Base de dados (Supabase)
+
+Crie um projeto em [supabase.com](https://supabase.com) (o plano gratuito chega para começar).
+
+No painel do projeto, abra **SQL Editor**, cole o conteúdo de
+`supabase/migrations/0001_init.sql` e execute.
+
+Em **Project Settings → API** copie:
+
+- `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+- `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (nunca partilhar nem versionar)
+
+Em **Authentication → Providers**, confirme que o **Email** está ativo. Para testar sem servidor de
+email, desligue a confirmação de email em **Authentication → Sign In / Providers → Email →
+Confirm email**.
+
+### 2. Variáveis de ambiente
+
+```bash
+cp .env.example .env.local
+```
+
+Preencha pelo menos as três variáveis do Supabase. As restantes são opcionais:
+
+- **Sem `GEMINI_API_KEY`** a aplicação corre em **modo simulado** — o fluxo completo funciona,
+  mas os dados extraídos são fictícios. Útil para experimentar sem custos.
+  A chave obtém-se em [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+- **Sem as variáveis do Microsoft Graph / SharePoint**, o upload e a extração funcionam na mesma;
+  apenas não há arquivo do ficheiro original nem recolha por email.
+
+### 3. Correr
+
+```bash
+npm run dev
+```
+
+Abra http://localhost:3000, crie conta e siga para a criação da organização.
+
+## Configuração do Microsoft 365 (opcional)
+
+Necessária para o arquivo em SharePoint e a recolha de faturas por email.
+
+1. **Registar a aplicação** no Azure AD (Microsoft Entra ID) → App registrations → New registration.
+2. Em **Certificates & secrets**, criar um client secret → `MS_GRAPH_CLIENT_SECRET`.
+   O Directory (tenant) ID e o Application (client) ID vão para `MS_GRAPH_TENANT_ID` e
+   `MS_GRAPH_CLIENT_ID`.
+3. Em **API permissions**, adicionar permissões de **aplicação** (não delegadas):
+   - `Mail.Read` e `Mail.ReadWrite` — ler as caixas e marcar mensagens como lidas
+   - `Sites.Selected` (recomendado) ou `Sites.ReadWrite.All` — arquivo dos ficheiros
+   Depois, **Grant admin consent**.
+4. **Restringir o acesso ao correio** (importante): sem isto a aplicação consegue ler todas as
+   caixas do tenant. No Exchange Online PowerShell:
+
+   ```powershell
+   New-ApplicationAccessPolicy -AppId <CLIENT_ID> `
+     -PolicyScopeGroupId grupo-caixas-faturas@empresa.pt `
+     -AccessRight RestrictAccess `
+     -Description "Acesso apenas às caixas de faturas"
+   ```
+
+5. **SharePoint**: criar (ou escolher) o site e a biblioteca de documentos onde as faturas ficam
+   arquivadas. Obter os identificadores via Graph:
+
+   ```
+   GET https://graph.microsoft.com/v1.0/sites/{hostname}:/sites/{site}    → SHAREPOINT_SITE_ID
+   GET https://graph.microsoft.com/v1.0/sites/{site-id}/drives            → SHAREPOINT_DRIVE_ID
+   ```
+
+6. Na aplicação, em **Mailboxes**, adicionar uma caixa por país (código de 2 letras, empresa,
+   idioma e endereço) e iniciar o loop de recolha.
+
+### Como os ficheiros ficam organizados
+
+```
+/Faturas/{organization_id}/{PAÍS}/{ANO}/{MÊS}/{NÚMERO_DA_FATURA}__{invoice_id}.pdf
+```
+
+O nome junta o número original da fatura (reconhecível por quem navega o SharePoint) ao
+identificador do registo (correspondência inequívoca com a base de dados, sem colisões).
+
+Enquanto a extração não corre, o ficheiro fica em `_Entrada` e é movido/renomeado assim que o
+número e a data são conhecidos. **Se um utilizador corrigir o número, a data ou o país, o ficheiro é
+renomeado e movido em conformidade** — a ligação nunca se parte, porque é feita pelo
+`sharepoint_item_id` e não pelo caminho. Faturas descartadas são movidas para `_Descartadas` em vez
+de eliminadas, por causa da retenção legal.
+
+## Agendamento da recolha
+
+A rota `/api/cron/poll-mailboxes` faz a recolha e é protegida por `CRON_SECRET`.
+
+- **Vercel**: o `vercel.json` já agenda a execução ao minuto (requer plano Pro para essa
+  granularidade).
+- **Alternativa**: qualquer agendador externo (GitHub Actions, cron de um servidor, Task Scheduler)
+  a chamar:
+
+  ```bash
+  curl -H "Authorization: Bearer $CRON_SECRET" https://a-sua-app/api/cron/poll-mailboxes
+  ```
+
+A recolha só corre para organizações com o loop ativo (ligado na página **Mailboxes**). A tabela
+`email_ingest_log` garante que a mesma mensagem/anexo nunca é processada duas vezes, mesmo que duas
+execuções se sobreponham.
+
+## Integração ERP
+
+Em **Definições → Integração ERP** define-se o URL do webhook e se o envio é automático quando uma
+fatura fica confirmada. Cada pedido inclui:
+
+```
+X-Faturas-Signature: sha256=<hmac-sha256(corpo, segredo)>
+```
+
+Para validar no sistema recetor, calcule o HMAC-SHA256 sobre os **bytes exatos** do corpo recebido
+(antes de qualquer reserialização de JSON) com o segredo mostrado nas definições.
+
+## Papéis de utilizador
+
+| Papel | Pode |
+|---|---|
+| **Administrador** | Tudo: utilizadores, definições, caixas de email, integração ERP |
+| **Membro** | Carregar, editar, confirmar e descartar faturas; gerir centros de custo |
+| **Leitor** | Consultar e exportar |
+
+Os utilizadores são criados na página **Utilizadores**, por convite por email ou por password
+temporária. Não dependem do Azure AD: pode dar acesso a contabilistas ou consultores externos que
+não existem no diretório da empresa.
+
+## Stack
+
+Next.js (App Router) · TypeScript · Tailwind · Supabase (Postgres + RLS + Auth) · Gemini Flash
+(Google Gemini) · Microsoft Graph (correio + SharePoint) · Recharts

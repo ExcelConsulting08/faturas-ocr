@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/poll-mailboxes",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/erp-retry",
+      "schedule": "30 7 * * *"
+    }
+  ]
+}
