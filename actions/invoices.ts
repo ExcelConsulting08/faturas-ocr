@@ -14,6 +14,8 @@ export interface UploadResult {
   fileName: string;
   ok: boolean;
   message?: string;
+  /** Permite ao browser enviar a seguir a imagem original para esta fatura. */
+  invoiceId?: string;
 }
 
 export async function uploadInvoices(formData: FormData): Promise<UploadResult[]> {
@@ -49,6 +51,7 @@ export async function uploadInvoices(formData: FormData): Promise<UploadResult[]
       fileName: file.name,
       ok: outcome.status !== "falhada",
       message: outcome.error ?? outcome.skippedReason,
+      invoiceId: outcome.invoiceId ?? undefined,
     });
   }
 

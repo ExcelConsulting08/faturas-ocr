@@ -46,15 +46,22 @@ export default async function InvoiceDetailPage({
       .returns<{ pais: string }[]>(),
   ]);
 
-  let downloadUrl: string | null = null;
   const storage = getStorageFor(invoice.storage_provider);
-  if (storage && invoice.storage_id) {
+
+  const urlDe = async (id: string | null) => {
+    if (!storage || !id) return null;
     try {
-      downloadUrl = await storage.getViewUrl(invoice.storage_id);
+      return await storage.getViewUrl(id);
     } catch {
       // Sem URL o visualizador mostra o estado vazio; os dados continuam editáveis.
+      return null;
     }
-  }
+  };
+
+  const [downloadUrl, originalUrl] = await Promise.all([
+    urlDe(invoice.storage_id),
+    urlDe(invoice.storage_original_id),
+  ]);
 
   const lineItems = [...(invoice.line_items ?? [])].sort((a, b) => a.posicao - b.posicao);
 
@@ -73,9 +80,21 @@ export default async function InvoiceDetailPage({
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2">
         <div className="min-h-[400px] border-r border-border bg-gray-800">
           <FileViewer
-            url={downloadUrl}
-            mimeType={invoice.mime_type}
-            fileName={invoice.file_name}
+            enviada={{
+              url: downloadUrl,
+              mimeType: invoice.mime_type,
+              fileName: invoice.file_name,
+            }}
+            original={
+              originalUrl
+                ? {
+                    url: originalUrl,
+                    // O original de uma fatura comprimida é sempre uma imagem.
+                    mimeType: "image/jpeg",
+                    fileName: invoice.file_name,
+                  }
+                : null
+            }
           />
         </div>
 

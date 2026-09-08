@@ -5,10 +5,34 @@ import { useRef, useState, useTransition } from "react";
 import { Upload, X } from "lucide-react";
 
 import { uploadInvoices, type UploadResult } from "@/actions/invoices";
+import { prepareOriginalUpload, recordOriginalUpload } from "@/actions/original-image";
 import { compressImage } from "@/lib/invoices/compress-image";
+import { createClient } from "@/lib/supabase/client";
 import { Button, Card, CardBody, CardHeader, Select } from "@/components/ui/primitives";
 
 const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.tiff";
+
+/**
+ * Envia a imagem original para o armazenamento com um URL assinado.
+ * Falhar aqui não compromete a fatura: perde-se apenas a vista do original.
+ */
+async function enviarOriginal(invoiceId: string, original: File): Promise<void> {
+  try {
+    const bilhete = await prepareOriginalUpload(invoiceId, original.name);
+    if (!bilhete) return;
+
+    const supabase = createClient();
+    const { error } = await supabase.storage
+      .from("faturas")
+      .uploadToSignedUrl(bilhete.path, bilhete.token, original, {
+        contentType: original.type,
+      });
+
+    if (!error) await recordOriginalUpload(invoiceId, bilhete.path);
+  } catch {
+    // A fatura já está criada e legível; o original é um extra.
+  }
+}
 
 export function UploadModal({ paises }: { paises: { pais: string; empresa: string }[] }) {
   const [open, setOpen] = useState(false);
@@ -25,17 +49,29 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
     if (!files?.length) return;
 
     startTransition(async () => {
+      const originais = [...files];
       const formData = new FormData();
       // Fotografias são reduzidas aqui: a alternativa é rebentar o limite do
       // corpo do pedido e o utilizador levar com um erro de servidor opaco.
-      for (const file of files) {
-        formData.append("files", await compressImage(file));
-      }
+      const comprimidos = await Promise.all(originais.map(compressImage));
+      for (const file of comprimidos) formData.append("files", file);
       if (pais) formData.append("pais", pais);
 
       try {
         const outcome = await uploadInvoices(formData);
         setResults(outcome);
+
+        // O original vai direto para o armazenamento, sem passar pelo Server
+        // Action — é por ser grande demais que existe a versão comprimida.
+        await Promise.all(
+          outcome.map((resultado, indice) => {
+            const original = originais[indice];
+            const foiComprimido = comprimidos[indice] !== original;
+            if (!resultado.ok || !resultado.invoiceId || !foiComprimido) return null;
+            return enviarOriginal(resultado.invoiceId, original);
+          }),
+        );
+
         router.refresh();
       } catch (error) {
         // O limite do corpo do pedido rebenta antes de chegar ao servidor, com

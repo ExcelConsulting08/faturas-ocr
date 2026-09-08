@@ -78,6 +78,9 @@ export interface Invoice {
   storage_container: string | null;
   storage_id: string | null;
   storage_path: string | null;
+  /** Imagem original, antes da compressão feita no browser. */
+  storage_original_id: string | null;
+  storage_original_path: string | null;
   file_name: string | null;
   file_size: number | null;
   mime_type: string | null;
