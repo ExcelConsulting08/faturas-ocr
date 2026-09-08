@@ -14,8 +14,10 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
   const [results, setResults] = useState<UploadResult[]>([]);
   const [pending, startTransition] = useTransition();
   const [dragging, setDragging] = useState(false);
+  // Estado, não uma referência ao elemento: garante que o país escolhido é o
+  // que segue no envio, mesmo que o componente volte a renderizar entretanto.
+  const [pais, setPais] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const paisRef = useRef<HTMLSelectElement>(null);
   const router = useRouter();
 
   function submit(files: FileList | null) {
@@ -23,7 +25,7 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
 
     const formData = new FormData();
     for (const file of files) formData.append("files", file);
-    if (paisRef.current?.value) formData.append("pais", paisRef.current.value);
+    if (pais) formData.append("pais", pais);
 
     startTransition(async () => {
       const outcome = await uploadInvoices(formData);
@@ -58,7 +60,11 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
               {paises.length > 0 ? (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted">País:</span>
-                  <Select ref={paisRef} defaultValue="">
+                  <Select
+                    value={pais}
+                    disabled={pending}
+                    onChange={(event) => setPais(event.target.value)}
+                  >
                     <option value="">Sem país</option>
                     {paises.map((entry) => (
                       <option key={entry.pais} value={entry.pais}>
@@ -101,21 +107,28 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
               </div>
 
               {results.length > 0 ? (
-                <ul className="space-y-1 text-sm">
-                  {results.map((result) => (
-                    <li key={result.fileName} className="flex items-start gap-2">
-                      <span className={result.ok ? "text-emerald-600" : "text-red-600"}>
-                        {result.ok ? "✓" : "✕"}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{result.fileName}</span>
-                        {result.message ? (
-                          <span className="text-xs text-muted">{result.message}</span>
-                        ) : null}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-2">
+                  <ul className="space-y-1 text-sm">
+                    {results.map((result) => (
+                      <li key={result.fileName} className="flex items-start gap-2">
+                        <span className={result.ok ? "text-emerald-600" : "text-red-600"}>
+                          {result.ok ? "✓" : "✕"}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{result.fileName}</span>
+                          {result.message ? (
+                            <span className="text-xs text-muted">{result.message}</span>
+                          ) : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted">
+                    {pais
+                      ? `Classificadas com o país ${pais}.`
+                      : "Carregadas sem país. Pode defini-lo no detalhe de cada fatura."}
+                  </p>
+                </div>
               ) : null}
             </CardBody>
           </Card>
