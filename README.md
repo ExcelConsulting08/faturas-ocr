@@ -6,8 +6,8 @@ SharePoint e recolha automática a partir de caixas de correio por país.
 ## O que faz
 
 - **Upload manual** de faturas (PDF, JPG, PNG, WebP, HEIC, TIFF até 20MB)
-- **Recolha automática por email**: uma caixa Microsoft 365 por país, lida de minuto a minuto; a
-  caixa determina o país da fatura
+- **Recolha automática por email**: uma caixa Microsoft 365 por país; a caixa determina o país da
+  fatura. A frequência depende do agendador (ver [Agendamento da recolha](#agendamento-da-recolha))
 - **Extração por OCR** com Gemini Flash: fornecedor, NIF, IBAN, número, datas, linhas e totais
 - **Validação determinística**: checksum de NIF português, IBAN (mod-97) e coerência de datas,
   combinados com a confiança do modelo para decidir se a fatura segue automaticamente ou vai para
@@ -117,14 +117,25 @@ de eliminadas, por causa da retenção legal.
 
 A rota `/api/cron/poll-mailboxes` faz a recolha e é protegida por `CRON_SECRET`.
 
-- **Vercel**: o `vercel.json` já agenda a execução ao minuto (requer plano Pro para essa
-  granularidade).
-- **Alternativa**: qualquer agendador externo (GitHub Actions, cron de um servidor, Task Scheduler)
-  a chamar:
+- **Vercel**: o `vercel.json` agenda a execução **uma vez por dia** (07:00 UTC). O plano Hobby
+  permite 2 cron jobs por projeto, com um disparo diário cada — a recolha ao minuto descrita acima
+  exige o plano Pro, que suporta a granularidade `* * * * *`.
+- **Recolha mais frequente sem mudar de plano**: qualquer agendador externo (GitHub Actions, cron de
+  um servidor, Task Scheduler) a chamar:
 
   ```bash
   curl -H "Authorization: Bearer $CRON_SECRET" https://a-sua-app/api/cron/poll-mailboxes
   ```
+
+Entretanto, o botão **Recolher agora** na página Mailboxes dispara a recolha à mão, pelo mesmo
+caminho de código, sem depender de agendador nenhum.
+
+### Manter a base de dados acordada
+
+Os projetos Supabase no plano gratuito entram em pausa ao fim de alguns dias sem atividade. O
+workflow `.github/workflows/keep-alive.yml` faz um pedido por dia à API do Supabase para o evitar.
+Corre no GitHub Actions, e não na Vercel, porque os 2 cron jobs do plano Hobby já estão ocupados.
+Requer a variável `SUPABASE_URL` e o segredo `SUPABASE_ANON_KEY` no repositório.
 
 A recolha só corre para organizações com o loop ativo (ligado na página **Mailboxes**). A tabela
 `email_ingest_log` garante que a mesma mensagem/anexo nunca é processada duas vezes, mesmo que duas

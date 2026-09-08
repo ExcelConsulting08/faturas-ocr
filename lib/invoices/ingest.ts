@@ -159,7 +159,8 @@ export async function ingestInvoice(
     ? await resolveCostCenter(supabase, input.organizationId, supplierId)
     : null;
 
-  // 6. Totais: as linhas mandam, conforme o comportamento esperado na UI.
+  // 6. Totais: manda o resumo impresso no documento; as linhas só entram quando
+  //    o documento não traz resumo nenhum (ver computeTotals).
   const totals = computeTotals(result);
   const moeda = (result.fatura.moeda || "EUR").toUpperCase();
   const { totalEur, rateUsed } = await convertToEur(
