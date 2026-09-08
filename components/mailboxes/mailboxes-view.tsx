@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
-import { Inbox, Play, Plus, RefreshCw, Square, Trash2, Upload } from "lucide-react";
+import { Inbox, Pencil, Play, Plus, RefreshCw, Square, Trash2, Upload } from "lucide-react";
 
 import {
   collectNow,
@@ -11,6 +11,7 @@ import {
   setCollectionLoop,
   setMailboxActive,
   syncAccount,
+  updateMailbox,
   type MailboxState,
 } from "@/actions/mailboxes";
 import {
@@ -30,6 +31,95 @@ import type { MailboxWithCount } from "@/app/(app)/mailboxes/page";
 
 const INITIAL: MailboxState = {};
 const INTERVALS = [30, 60, 120, 300, 900];
+
+interface MailboxValues {
+  pais: string;
+  empresa: string;
+  idioma: string;
+  email_address: string;
+}
+
+/** Edição de uma caixa, no lugar do próprio cartão. */
+function MailboxEditor({
+  mailbox,
+  disabled,
+  onSave,
+  onCancel,
+}: {
+  mailbox: MailboxWithCount;
+  disabled: boolean;
+  onSave: (values: MailboxValues) => void;
+  onCancel: () => void;
+}) {
+  const [values, setValues] = useState<MailboxValues>({
+    pais: mailbox.pais,
+    empresa: mailbox.empresa,
+    idioma: mailbox.idioma,
+    email_address: mailbox.email_address,
+  });
+
+  function set(campo: keyof MailboxValues, valor: string) {
+    setValues((atual) => ({ ...atual, [campo]: valor }));
+  }
+
+  return (
+    <Card className="border-primary p-4">
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(values);
+        }}
+      >
+        <Field label="Endereço de email">
+          <Input
+            type="email"
+            value={values.email_address}
+            disabled={disabled}
+            required
+            onChange={(e) => set("email_address", e.target.value)}
+          />
+        </Field>
+
+        <Field label="País">
+          <Input
+            value={values.pais}
+            maxLength={2}
+            disabled={disabled}
+            required
+            onChange={(e) => set("pais", e.target.value.toUpperCase())}
+          />
+        </Field>
+
+        <Field label="Empresa">
+          <Input
+            value={values.empresa}
+            disabled={disabled}
+            required
+            onChange={(e) => set("empresa", e.target.value)}
+          />
+        </Field>
+
+        <Field label="Idioma">
+          <Input
+            value={values.idioma}
+            disabled={disabled}
+            onChange={(e) => set("idioma", e.target.value)}
+          />
+        </Field>
+
+        <div className="flex gap-2 border-t border-border pt-3">
+          <Button type="submit" variant="primary" className="text-xs" disabled={disabled}>
+            {disabled ? "A gravar..." : "Gravar"}
+          </Button>
+          <Button type="button" className="text-xs" disabled={disabled} onClick={onCancel}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
 
 export function MailboxesView({
   mailboxes,
@@ -56,6 +146,7 @@ export function MailboxesView({
   const [error, setError] = useState<string | null>(null);
   const [sessionCollected, setSessionCollected] = useState(0);
   const [intervalo, setIntervalo] = useState(settings?.intervalo_segundos ?? 60);
+  const [editando, setEditando] = useState<string | null>(null);
 
   const loopAtivo = settings?.loop_ativo ?? false;
   const graphConnected = missingGraphVars.length === 0;
@@ -277,63 +368,89 @@ export function MailboxesView({
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {mailboxes.map((mailbox) => (
-            <Card key={mailbox.id} className="p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Inbox className="h-4 w-4 shrink-0 text-muted" />
-                  <span className="truncate font-medium">{mailbox.email_address}</span>
+          {mailboxes.map((mailbox) =>
+            editando === mailbox.id ? (
+              <MailboxEditor
+                key={mailbox.id}
+                mailbox={mailbox}
+                disabled={pending}
+                onCancel={() => setEditando(null)}
+                onSave={(values) =>
+                  run(async () => {
+                    await updateMailbox(mailbox.id, values);
+                    setEditando(null);
+                  })
+                }
+              />
+            ) : (
+              <Card key={mailbox.id} className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Inbox className="h-4 w-4 shrink-0 text-muted" />
+                    <span className="truncate font-medium">{mailbox.email_address}</span>
+                  </div>
+                  <Badge tone="sky">{mailbox.pais}</Badge>
                 </div>
-                <Badge tone="sky">{mailbox.pais}</Badge>
-              </div>
 
-              <p className="mt-2 truncate text-sm text-muted">{mailbox.empresa}</p>
-              <p className="text-sm text-muted">Idioma: {mailbox.idioma}</p>
+                <p className="mt-2 truncate text-sm text-muted">{mailbox.empresa}</p>
+                <p className="text-sm text-muted">Idioma: {mailbox.idioma}</p>
 
-              <div className="mt-4 flex items-end justify-between">
-                <div>
-                  <p className="text-2xl font-semibold">{mailbox.invoiceCount}</p>
-                  <p className="text-sm text-muted">faturas recolhidas</p>
+                <div className="mt-4 flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-semibold">{mailbox.invoiceCount}</p>
+                    <p className="text-sm text-muted">faturas recolhidas</p>
+                  </div>
+
+                  {!mailbox.ativo ? (
+                    <Badge tone="neutral">Inativa</Badge>
+                  ) : mailbox.connection_status === "ligada" ? (
+                    <Badge tone="green">Ligada</Badge>
+                  ) : mailbox.connection_status === "erro" ? (
+                    <Badge tone="red">Erro</Badge>
+                  ) : (
+                    <Badge tone="neutral">Por ligar</Badge>
+                  )}
                 </div>
 
-                {!mailbox.ativo ? (
-                  <Badge tone="neutral">Inativa</Badge>
-                ) : mailbox.connection_status === "ligada" ? (
-                  <Badge tone="green">Ligada</Badge>
-                ) : mailbox.connection_status === "erro" ? (
-                  <Badge tone="red">Erro</Badge>
-                ) : (
-                  <Badge tone="neutral">Por ligar</Badge>
-                )}
-              </div>
+                {mailbox.last_error ? (
+                  <p className="mt-2 line-clamp-2 text-xs text-red-600">{mailbox.last_error}</p>
+                ) : null}
+                {mailbox.last_polled_at ? (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Última recolha: {formatDateTime(mailbox.last_polled_at)}
+                  </p>
+                ) : null}
 
-              {mailbox.last_error ? (
-                <p className="mt-2 line-clamp-2 text-xs text-red-600">{mailbox.last_error}</p>
-              ) : null}
-              {mailbox.last_polled_at ? (
-                <p className="mt-1 text-xs text-gray-400">
-                  Última recolha: {formatDateTime(mailbox.last_polled_at)}
-                </p>
-              ) : null}
-
-              <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                <Button
-                  className="text-xs"
-                  disabled={pending}
-                  onClick={() => run(() => setMailboxActive(mailbox.id, !mailbox.ativo))}
-                >
-                  {mailbox.ativo ? "Desativar" : "Ativar"}
-                </Button>
-                <button
-                  className="text-muted transition-colors hover:text-red-600"
-                  disabled={pending}
-                  onClick={() => run(() => deleteMailbox(mailbox.id))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </Card>
-          ))}
+                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                  <Button
+                    className="text-xs"
+                    disabled={pending}
+                    onClick={() => {
+                      setError(null);
+                      setEditando(mailbox.id);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                  <Button
+                    className="text-xs"
+                    disabled={pending}
+                    onClick={() => run(() => setMailboxActive(mailbox.id, !mailbox.ativo))}
+                  >
+                    {mailbox.ativo ? "Desativar" : "Ativar"}
+                  </Button>
+                  <button
+                    className="ml-auto text-muted transition-colors hover:text-red-600"
+                    disabled={pending}
+                    onClick={() => run(() => deleteMailbox(mailbox.id))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </Card>
+            ),
+          )}
         </div>
       )}
 

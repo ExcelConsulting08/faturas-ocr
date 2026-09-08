@@ -54,6 +54,49 @@ export async function createMailbox(
   return { success: `Caixa ${email} adicionada.` };
 }
 
+export async function updateMailbox(
+  mailboxId: string,
+  values: { pais: string; empresa: string; idioma: string; email_address: string },
+): Promise<void> {
+  const { organization } = await requireAdmin();
+
+  const pais = values.pais.trim().toUpperCase();
+  const empresa = values.empresa.trim();
+  const idioma = values.idioma.trim();
+  const email = values.email_address.trim().toLowerCase();
+
+  if (!pais || !empresa || !email) {
+    throw new Error("O país, a empresa e o endereço de email são obrigatórios.");
+  }
+  if (pais.length !== 2) {
+    throw new Error("O país deve ser o código de duas letras (ex. PT, ES, FR, BE).");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("country_mailboxes")
+    .update({
+      pais,
+      empresa,
+      idioma: idioma || "pt",
+      email_address: email,
+      // O endereço identifica a caixa no Graph: se muda, o alvo do polling muda com ele.
+      graph_user_id: email,
+    })
+    .eq("id", mailboxId)
+    .eq("organization_id", organization.id);
+
+  if (error) {
+    throw new Error(
+      error.message.includes("duplicate")
+        ? "Já existe uma caixa com esse país ou endereço."
+        : error.message,
+    );
+  }
+
+  revalidatePath("/mailboxes");
+}
+
 export async function setMailboxActive(mailboxId: string, ativo: boolean): Promise<void> {
   const { organization } = await requireAdmin();
 
