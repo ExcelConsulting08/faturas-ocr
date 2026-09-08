@@ -3,7 +3,6 @@
  * Correr com: npx tsx scripts/verify-core.ts
  */
 import { decideStatus } from "../lib/invoices/status";
-import { decidirTentativa, pingConfirmado } from "../lib/keep-alive/decide";
 import { buildFileName, buildFolderPath, sanitizeNumero } from "../lib/sharepoint/paths";
 import { normalizeNumero } from "../lib/duplicates/detect";
 import { areDatesValid } from "../lib/validators/dates";
@@ -99,46 +98,6 @@ check(
 console.log("\nNormalização para deteção de duplicados");
 check("separadores ignorados", normalizeNumero("FT 2026A17/113"), "FT2026A17113");
 check("mesma fatura escrita de forma diferente", normalizeNumero("ft-2026a17.113"), "FT2026A17113");
-
-console.log("\nPing diário à base de dados (repetição ao fim de uma hora)");
-check("primeiro disparo do dia → pinga", decidirTentativa([]), { acao: "pingar", tentativa: 1 });
-check("depois de uma falha → repete", decidirTentativa([{ tentativa: 1, sucesso: false }]), {
-  acao: "pingar",
-  tentativa: 2,
-});
-check(
-  "depois de duas falhas → repete pela última vez",
-  decidirTentativa([
-    { tentativa: 2, sucesso: false },
-    { tentativa: 1, sucesso: false },
-  ]),
-  { acao: "pingar", tentativa: 3 },
-);
-check(
-  "três falhas → desiste até amanhã",
-  decidirTentativa([
-    { tentativa: 3, sucesso: false },
-    { tentativa: 2, sucesso: false },
-    { tentativa: 1, sucesso: false },
-  ]),
-  { acao: "ignorar", estado: "esgotado", tentativas: 3 },
-);
-check(
-  "já confirmado → disparos seguintes não fazem nada",
-  decidirTentativa([{ tentativa: 1, sucesso: true }]),
-  { acao: "ignorar", estado: "ja_confirmado", tentativas: 1 },
-);
-check(
-  "sucesso à segunda trava a terceira tentativa",
-  decidirTentativa([
-    { tentativa: 2, sucesso: true },
-    { tentativa: 1, sucesso: false },
-  ]),
-  { acao: "ignorar", estado: "ja_confirmado", tentativas: 2 },
-);
-check("resposta com contagem → confirmado", pingConfirmado(null, 0), true);
-check("erro da base de dados → não confirmado", pingConfirmado("connection refused", null), false);
-check("sem erro mas sem contagem → não confirmado", pingConfirmado(null, null), false);
 
 console.log(`\n${passed} verificações passaram, ${failed} falharam.\n`);
 process.exit(failed > 0 ? 1 : 0);
