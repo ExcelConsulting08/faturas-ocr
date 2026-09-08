@@ -1,0 +1,76 @@
+name: Ping diário ao Supabase
+
+# Porque não é um cron da Vercel: o plano Hobby permite 2 cron jobs por projeto,
+# um disparo por dia cada, e esses 2 já estão ocupados (poll-mailboxes e
+# erp-retry). O GitHub Actions é gratuito e permite os três disparos com uma
+# hora de intervalo que a retentativa exige.
+#
+# A lógica toda vive na rota /api/cron/keep-alive; isto aqui é só o despertador.
+# Cada disparo consulta o estado do dia antes de agir: assim que um ping é
+# confirmado, os disparos seguintes saem sem fazer nada.
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # 1.ª tentativa
+    - cron: "0 5 * * *" # 2.ª, só age se a 1.ª falhou
+    - cron: "0 6 * * *" # 3.ª e última
+  workflow_dispatch: # permite disparar à mão a partir do separador Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pingar a base de dados
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_URL}" ]; then
+            echo "::error::Falta a variável APP_URL (Settings › Secrets and variables › Actions › Variables)"
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::Falta o segredo CRON_SECRET (Settings › Secrets and variables › Actions › Secrets)"
+            exit 1
+          fi
+
+          # --fail-with-body para o corpo da resposta chegar aqui mesmo quando a
+          # rota devolve 503 — é aí que vem o motivo da falha.
+          resposta=$(curl --silent --show-error --max-time 60 \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/keep-alive") || {
+              echo "::error::A aplicação não respondeu."
+              exit 1
+            }
+
+          echo "Resposta: ${resposta}"
+
+          estado=$(echo "${resposta}" | jq -r '.estado // "sem_estado"')
+
+          case "${estado}" in
+            confirmado)
+              echo "Ping confirmado. Base de dados acordada."
+              ;;
+            ja_confirmado)
+              echo "Já tinha sido confirmado hoje. Nada a fazer."
+              ;;
+            falhou_vai_repetir)
+              # Ainda há tentativas: não falha o workflow, para não enviar um
+              # email de erro por uma falha que ainda vai ser recuperada.
+              echo "::warning::O ping falhou. Nova tentativa dentro de uma hora."
+              ;;
+            esgotado)
+              echo "::error::Três tentativas falhadas hoje. A base de dados não respondeu."
+              exit 1
+              ;;
+            erro)
+              echo "::error::A rota não conseguiu falar com a base de dados."
+              exit 1
+              ;;
+            *)
+              echo "::error::Resposta inesperada da rota de keep-alive."
+              exit 1
+              ;;
+          esac
