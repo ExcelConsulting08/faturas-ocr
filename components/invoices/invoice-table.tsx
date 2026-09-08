@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Badge, Card, EmptyState } from "@/components/ui/primitives";
+import { Badge, Card, EmptyState } from "@faturas/ui";
 import { CountryBadge, PaymentBadge, StatusBadge } from "@/components/invoices/status-badges";
 import type { InvoiceListRow } from "@/lib/invoices/queries";
 import { avatarColor, formatDate, formatNumber, initials } from "@/lib/utils";

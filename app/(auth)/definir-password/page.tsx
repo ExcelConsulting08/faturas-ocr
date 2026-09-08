@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import { updatePassword, type ActionState } from "@/actions/auth";
-import { Button, Card, CardBody, Field, Input } from "@/components/ui/primitives";
+import { Button, Card, CardBody, Field, Input } from "@faturas/ui";
 
 const INITIAL: ActionState = {};
 

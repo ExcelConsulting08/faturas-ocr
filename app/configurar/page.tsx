@@ -1,4 +1,4 @@
-import { Card, CardBody, CardHeader } from "@/components/ui/primitives";
+import { Card, CardBody, CardHeader } from "@faturas/ui";
 import { missingCoreEnvVars } from "@/lib/config";
 
 export const dynamic = "force-dynamic";

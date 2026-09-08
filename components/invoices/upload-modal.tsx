@@ -8,7 +8,7 @@ import { uploadInvoices, type UploadResult } from "@/actions/invoices";
 import { prepareOriginalUpload, recordOriginalUpload } from "@/actions/original-image";
 import { compressImage } from "@/lib/invoices/compress-image";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, CardBody, CardHeader, Select } from "@/components/ui/primitives";
+import { Button, Card, CardBody, CardHeader, Select } from "@faturas/ui";
 
 const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.tiff";
 

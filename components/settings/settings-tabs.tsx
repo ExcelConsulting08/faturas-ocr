@@ -10,7 +10,7 @@ import {
   updateOrganization,
   type SettingsState,
 } from "@/actions/settings";
-import { Button, Card, CardBody, CardHeader, Field, Input, Select } from "@/components/ui/primitives";
+import { Button, Card, CardBody, CardHeader, Field, Input, Select } from "@faturas/ui";
 import { cn } from "@/lib/utils";
 import type { ErpIntegrationSettings, ExtractionPreferences, Organization } from "@/types/domain";
 

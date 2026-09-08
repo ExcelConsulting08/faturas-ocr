@@ -1,7 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "./cn";
 
+/** Contentor base do kit. Toda a informação agrupada vive dentro de um Card. */
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
@@ -19,7 +20,7 @@ export function CardBody({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("px-5 py-4", className)} {...props} />;
 }
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "warning" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "warning" | "ghost";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-indigo-700 border-transparent",
@@ -29,6 +30,10 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   ghost: "bg-transparent text-muted hover:bg-gray-100 border-transparent",
 };
 
+/**
+ * Botão do kit. `variant` carrega a intenção, não a cor: use `danger` para
+ * ações destrutivas e `primary` para a ação principal de cada ecrã.
+ */
 export function Button({
   className,
   variant = "secondary",
@@ -74,6 +79,10 @@ export function Label({ className, ...props }: ComponentProps<"label">) {
   return <label className={cn("block text-sm font-medium text-foreground", className)} {...props} />;
 }
 
+/**
+ * Rótulo e campo em conjunto. O `hint` serve para estados de validação junto
+ * ao rótulo, onde são lidos antes de o utilizador preencher o campo.
+ */
 export function Field({
   label,
   hint,
@@ -94,7 +103,7 @@ export function Field({
   );
 }
 
-type BadgeTone = "neutral" | "green" | "amber" | "red" | "indigo" | "sky";
+export type BadgeTone = "neutral" | "green" | "amber" | "red" | "indigo" | "sky";
 
 const BADGE_TONES: Record<BadgeTone, string> = {
   neutral: "bg-gray-100 text-gray-700",
@@ -105,6 +114,7 @@ const BADGE_TONES: Record<BadgeTone, string> = {
   sky: "bg-sky-100 text-sky-700",
 };
 
+/** Etiqueta de estado. O `tone` comunica a gravidade, não a cor literal. */
 export function Badge({
   tone = "neutral",
   className,
@@ -122,6 +132,7 @@ export function Badge({
   );
 }
 
+/** Estado vazio de uma lista ou tabela, dentro de um Card. */
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 px-6 py-16 text-center">

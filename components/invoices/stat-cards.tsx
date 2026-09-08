@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/primitives";
+import { Card } from "@faturas/ui";
 import { formatNumber } from "@/lib/utils";
 import type { CurrencyTotal, InvoiceStats } from "@/lib/invoices/queries";
 

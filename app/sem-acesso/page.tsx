@@ -1,5 +1,5 @@
 import { signOut } from "@/actions/auth";
-import { Button, Card, CardBody } from "@/components/ui/primitives";
+import { Button, Card, CardBody } from "@faturas/ui";
 
 export default function SemAcessoPage() {
   return (

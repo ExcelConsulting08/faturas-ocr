@@ -1,0 +1,29 @@
+/**
+ * Tokens de design do kit.
+ *
+ * Os componentes referem-se sempre a estes nomes, nunca a cores literais: é o
+ * que permite mudar o aspeto do produto inteiro a partir de um sítio só.
+ */
+:root {
+  /* Superfícies e texto */
+  --background: #f7f8fa;
+  --foreground: #16181d;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --muted: #6b7280;
+
+  /* Ação principal */
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+}
+
+/* Exposição dos tokens ao Tailwind, para gerarem utilitários (bg-surface, text-muted, ...) */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+}

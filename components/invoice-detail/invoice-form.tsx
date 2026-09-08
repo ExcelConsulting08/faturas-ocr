@@ -13,7 +13,7 @@ import {
   type InvoiceFormValues,
 } from "@/actions/invoices";
 import { ConfidenceBadge, PaymentBadge, StatusBadge } from "@/components/invoices/status-badges";
-import { Badge, Button, Card, CardBody, CardHeader, Field, Input, Select } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardBody, CardHeader, Field, Input, Select } from "@faturas/ui";
 import { formatNumber } from "@/lib/utils";
 import type { CostCenter, InvoiceWithRelations } from "@/types/domain";
 

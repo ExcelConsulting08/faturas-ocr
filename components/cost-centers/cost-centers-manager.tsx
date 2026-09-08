@@ -19,7 +19,7 @@ import {
   EmptyState,
   Input,
   Select,
-} from "@/components/ui/primitives";
+} from "@faturas/ui";
 import type { Supplier } from "@/types/domain";
 import type { CostCenterWithCounts, RuleRow } from "@/app/(app)/centros-custo/page";
 

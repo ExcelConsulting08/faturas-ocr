@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/primitives";
+import { Badge } from "@faturas/ui";
 import type { InvoiceStatus, PaymentStatus } from "@/types/domain";
 
 const STATUS_LABELS: Record<InvoiceStatus, { label: string; tone: "green" | "amber" | "indigo" | "red" | "neutral" }> = {

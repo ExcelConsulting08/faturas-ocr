@@ -19,7 +19,7 @@ import {
   Field,
   Input,
   Select,
-} from "@/components/ui/primitives";
+} from "@faturas/ui";
 import { formatDate } from "@/lib/utils";
 import type { OrgMember, Role } from "@/types/domain";
 

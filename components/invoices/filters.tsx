@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { Button, Input, Select } from "@/components/ui/primitives";
+import { Button, Input, Select } from "@faturas/ui";
 
 export function InvoiceFilters({ paises }: { paises: string[] }) {
   const router = useRouter();

@@ -1,5 +1,5 @@
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
-import { Card } from "@/components/ui/primitives";
+import { Card } from "@faturas/ui";
 import { requireOrgContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { formatNumber } from "@/lib/utils";

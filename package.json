@@ -2,9 +2,13 @@
   "name": "faturas-ocr",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build --workspace @faturas/ui && next build",
+    "build:ui": "npm run build --workspace @faturas/ui",
     "start": "next start",
     "lint": "eslint",
     "verify": "tsx scripts/verify-core.ts"

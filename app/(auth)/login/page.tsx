@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { signIn, type ActionState } from "@/actions/auth";
-import { Button, Card, CardBody, Field, Input } from "@/components/ui/primitives";
+import { Button, Card, CardBody, Field, Input } from "@faturas/ui";
 
 const INITIAL: ActionState = {};
 

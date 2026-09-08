@@ -2,7 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
-import { Card, CardBody, CardHeader } from "@/components/ui/primitives";
+import { Card, CardBody, CardHeader } from "@faturas/ui";
 import { formatNumber } from "@/lib/utils";
 
 export interface GroupEntry {

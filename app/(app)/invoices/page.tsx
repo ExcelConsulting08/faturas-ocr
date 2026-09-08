@@ -5,7 +5,7 @@ import { InvoiceFilters } from "@/components/invoices/filters";
 import { InvoiceTable } from "@/components/invoices/invoice-table";
 import { StatCards } from "@/components/invoices/stat-cards";
 import { UploadModal } from "@/components/invoices/upload-modal";
-import { Card } from "@/components/ui/primitives";
+import { Card } from "@faturas/ui";
 import { requireOrgContext } from "@/lib/auth/context";
 import {
   PAGE_SIZE,

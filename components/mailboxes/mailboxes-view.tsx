@@ -24,7 +24,7 @@ import {
   Field,
   Input,
   Select,
-} from "@/components/ui/primitives";
+} from "@faturas/ui";
 import { formatDateTime } from "@/lib/utils";
 import type { CollectionRun, CollectionSettings } from "@/types/domain";
 import type { MailboxWithCount } from "@/app/(app)/mailboxes/page";

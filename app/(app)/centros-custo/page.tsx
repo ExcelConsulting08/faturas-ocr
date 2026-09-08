@@ -1,5 +1,5 @@
 import { CostCentersManager } from "@/components/cost-centers/cost-centers-manager";
-import { Card } from "@/components/ui/primitives";
+import { Card } from "@faturas/ui";
 import { canWrite, requireOrgContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { CostCenter, Supplier } from "@/types/domain";
