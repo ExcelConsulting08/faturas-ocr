@@ -1,0 +1,30 @@
+/**
+ * Folha de estilos autónoma do kit.
+ *
+ * Compila as utilidades do Tailwind efetivamente usadas pelos componentes, para
+ * o pacote não depender de quem o consome ter Tailwind configurado. Sem isto,
+ * os componentes renderizam sem estilo fora da aplicação — em ferramentas de
+ * design, testes ou qualquer outro projeto.
+ */
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Varre os componentes do kit para saber que utilidades gerar. */
+@source "./";
+
+/*
+ * As composições de exemplo entram no varrimento de propósito: representam o
+ * uso real do kit, e são as utilidades de layout que elas precisam (flex, gap,
+ * grid, larguras) que quem compõe ecrãs com estes componentes também vai usar.
+ * Sem isto, o CSS traria só o que os componentes usam por dentro e qualquer
+ * arranjo à volta deles ficaria silenciosamente sem efeito.
+ */
+@source "../../../.design-sync/previews";
+
+/*
+ * Utilidades da marca sempre presentes, mesmo que nenhum componente as use por
+ * dentro. Quem compõe ecrãs com o kit precisa de pintar fundos e texto com os
+ * tokens; sem isto, `bg-background` só existiria por acaso, consoante o que os
+ * componentes usassem nesse momento.
+ */
+@source inline("bg-{background,surface,primary} text-{foreground,muted,primary,primary-foreground} border-border");

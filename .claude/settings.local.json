@@ -48,7 +48,22 @@
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt \\(Get-Date\\).AddHours\\(-3\\) } | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3; Start-Process -FilePath \"cmd.exe\" -ArgumentList '/c', 'npm.cmd run dev' -WorkingDirectory \\(Get-Location\\).Path -WindowStyle Hidden; Start-Sleep -Seconds 25; try { Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 20 | Out-Null; \"pronto\" } catch { \"a arrancar\" })",
       "PowerShell(npm run build:ui 2>&1)",
       "PowerShell(npx eslint . 2>&1 | Select-Object -First 10; \"--- build completo ---\"; $env:NEXT_PUBLIC_SUPABASE_URL=\"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY=\"placeholder\"; npm run build 2>&1 | Select-Object -Last 12)",
-      "PowerShell(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt \\(Get-Date\\).AddHours\\(-4\\) } | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3; Start-Process -FilePath \"cmd.exe\" -ArgumentList '/c', 'npm.cmd run dev' -WorkingDirectory \\(Get-Location\\).Path -WindowStyle Hidden; Start-Sleep -Seconds 28; try { Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 20 | Out-Null; \"pronto\" } catch { \"a arrancar\" })"
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt \\(Get-Date\\).AddHours\\(-4\\) } | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3; Start-Process -FilePath \"cmd.exe\" -ArgumentList '/c', 'npm.cmd run dev' -WorkingDirectory \\(Get-Location\\).Path -WindowStyle Hidden; Start-Sleep -Seconds 28; try { Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 20 | Out-Null; \"pronto\" } catch { \"a arrancar\" })",
+      "PowerShell(node .ds-sync/package-build.mjs --config .design-sync/config.json --node-modules ./node_modules --entry ./packages/ui/dist/index.js --out ./ds-bundle 2>&1)",
+      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\AppData\\\\Local\\\\ms-playwright\"\\) { Get-ChildItem \"$env:USERPROFILE\\\\AppData\\\\Local\\\\ms-playwright\" | Select-Object -ExpandProperty Name } else { \"sem cache do playwright\" })",
+      "PowerShell(node .ds-sync/package-validate.mjs ./ds-bundle 2>&1 | Select-Object -Last 30; \"--- exit code: $LASTEXITCODE ---\")",
+      "PowerShell(node .ds-sync/package-capture.mjs --out ./ds-bundle --components Button,Card,Field 2>&1)",
+      "PowerShell(npm i -D \"@tailwindcss/cli\" tailwindcss --workspace @faturas/ui 2>&1)",
+      "PowerShell(npm run build:ui 2>&1 | Select-Object -Last 3; \"--- css ---\"; \\(Get-Item packages\\\\ui\\\\dist\\\\styles.css\\).Length; \"--- bundle ---\"; node .ds-sync/package-build.mjs --config .design-sync/config.json --node-modules ./node_modules --entry ./packages/ui/dist/index.js --out ./ds-bundle 2>&1 | Select-Object -Last 6)",
+      "PowerShell(node .ds-sync/package-validate.mjs ./ds-bundle 2>&1 | Select-Object -Last 14; \"--- exit: $LASTEXITCODE ---\")",
+      "PowerShell(node .ds-sync/package-capture.mjs --out ./ds-bundle 2>&1)",
+      "Bash(node .ds-sync/package-capture.mjs --out ./ds-bundle)",
+      "Bash(grep -oE '\"[a-z][a-z0-9:./\\\\[\\\\]-]+ [^\"]*\"' packages/ui/src/primitives.tsx)",
+      "Bash(node .ds-sync/resync.mjs --config .design-sync/config.json --node-modules ./node_modules --entry ./packages/ui/dist/index.js --out ./ds-bundle)",
+      "Bash(node -e \"const v=require\\('./ds-bundle/.resync-verdict.json'\\); console.log\\('ok:', v.ok\\); console.log\\('learningsUnmerged:', v.learningsUnmerged\\); console.log\\('validate:', JSON.stringify\\(v.validate||{}\\)\\); console.log\\('pendingGrade:', v.verification.pendingGrade.length\\);\")",
+      "Read(//d/Trabalhos/2026/09 - Setembro/.design-sync/.cache/**)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"console.log\\('ficheiros a enviar:', require\\('./.design-sync/.cache/upload-payload.json'\\).length\\)\")"
     ]
   }
 }

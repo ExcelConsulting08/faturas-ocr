@@ -1,0 +1,10 @@
+{
+  "projectId": "bbc5cbc3-0c70-4a6a-9577-f4c6a3899535",
+  "shape": "package",
+  "pkg": "@faturas/ui",
+  "globalName": "FaturasUI",
+  "buildCmd": "npm run build:ui",
+  "cssEntry": "dist/styles.css",
+  "tokensGlob": "src/tokens.css",
+  "readmeHeader": ".design-sync/conventions.md"
+}
