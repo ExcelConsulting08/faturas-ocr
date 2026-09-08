@@ -63,7 +63,10 @@
       "Bash(node -e \"const v=require\\('./ds-bundle/.resync-verdict.json'\\); console.log\\('ok:', v.ok\\); console.log\\('learningsUnmerged:', v.learningsUnmerged\\); console.log\\('validate:', JSON.stringify\\(v.validate||{}\\)\\); console.log\\('pendingGrade:', v.verification.pendingGrade.length\\);\")",
       "Read(//d/Trabalhos/2026/09 - Setembro/.design-sync/.cache/**)",
       "Bash(node -e ' *)",
-      "Bash(node -e \"console.log\\('ficheiros a enviar:', require\\('./.design-sync/.cache/upload-payload.json'\\).length\\)\")"
+      "Bash(node -e \"console.log\\('ficheiros a enviar:', require\\('./.design-sync/.cache/upload-payload.json'\\).length\\)\")",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(npx tsx *)"
     ]
   }
 }
