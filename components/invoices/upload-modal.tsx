@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { Upload, X } from "lucide-react";
 
 import { uploadInvoices, type UploadResult } from "@/actions/invoices";
+import { compressImage } from "@/lib/invoices/compress-image";
 import { Button, Card, CardBody, CardHeader, Select } from "@/components/ui/primitives";
 
 const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.tiff";
@@ -23,14 +24,33 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
   function submit(files: FileList | null) {
     if (!files?.length) return;
 
-    const formData = new FormData();
-    for (const file of files) formData.append("files", file);
-    if (pais) formData.append("pais", pais);
-
     startTransition(async () => {
-      const outcome = await uploadInvoices(formData);
-      setResults(outcome);
-      router.refresh();
+      const formData = new FormData();
+      // Fotografias são reduzidas aqui: a alternativa é rebentar o limite do
+      // corpo do pedido e o utilizador levar com um erro de servidor opaco.
+      for (const file of files) {
+        formData.append("files", await compressImage(file));
+      }
+      if (pais) formData.append("pais", pais);
+
+      try {
+        const outcome = await uploadInvoices(formData);
+        setResults(outcome);
+        router.refresh();
+      } catch (error) {
+        // O limite do corpo do pedido rebenta antes de chegar ao servidor, com
+        // um erro que nada diz ao utilizador. Traduzimo-lo para algo acionável.
+        const message = error instanceof Error ? error.message : "";
+        setResults(
+          [...files].map((file) => ({
+            fileName: file.name,
+            ok: false,
+            message: /body|size|limit|413/i.test(message)
+              ? "Ficheiro demasiado grande para envio. Tente uma fotografia com menos resolução."
+              : "Falha no envio. Verifique a ligação e tente novamente.",
+          })),
+        );
+      }
     });
   }
 
