@@ -10,13 +10,29 @@ import { isValidIban, normalizeIban } from "@/lib/validators/iban";
 import { isValidPortugueseNif, normalizeNif } from "@/lib/validators/nif";
 import type { ValidationFlags } from "@/types/domain";
 
-// Versão fixa em vez do alias `-latest`: o alias aponta para o modelo mais
+// Versões fixas em vez do alias `-latest`: o alias aponta para o modelo mais
 // recente, que anda frequentemente saturado (503) no plano gratuito.
 const DEFAULT_MODEL = "gemini-3.6-flash";
+/**
+ * Modelos de recurso, por ordem. A quota do plano gratuito é diária e contada
+ * por modelo, pelo que esgotar um não impede de usar o seguinte.
+ */
+const DEFAULT_FALLBACKS = ["gemini-3.5-flash", "gemini-flash-latest"];
 
 /** O Gemini devolve 503 quando o modelo está sobrecarregado e 429 no limite de pedidos. */
-const RETRYABLE_STATUS = [429, 500, 502, 503, 504];
-const MAX_ATTEMPTS = 4;
+const RETRYABLE_STATUS = [500, 502, 503, 504];
+const MAX_ATTEMPTS = 3;
+
+/** Cadeia de modelos a tentar, do preferido para os de recurso. */
+function modelChain(): string[] {
+  const primario = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const recursos = process.env.GEMINI_FALLBACK_MODELS
+    ? process.env.GEMINI_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
+    : DEFAULT_FALLBACKS;
+
+  // Sem duplicados: se o primário já constar da lista de recurso, não repete.
+  return [...new Set([primario, ...recursos])];
+}
 
 /** Formatos que a API aceita diretamente. */
 const NATIVE_TYPES = new Set([
@@ -54,13 +70,15 @@ export async function extractInvoice(options: {
     return simulatedExtraction(options.fileName);
   }
 
+  let usedModel = "";
+
   try {
     const { data, mimeType } = await prepareDocument(options.buffer, options.mimeType);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    const response = await withRetry(() =>
+    const { response, modelo } = await generateWithFallback(ai, (model) =>
       ai.models.generateContent({
-        model: process.env.GEMINI_MODEL || DEFAULT_MODEL,
+        model,
         contents: [
           {
             role: "user",
@@ -80,6 +98,7 @@ export async function extractInvoice(options: {
       }),
     );
 
+    usedModel = modelo;
     const text = response.text;
     if (!text) {
       return {
@@ -124,7 +143,9 @@ export async function extractInvoice(options: {
       result: parsed.data,
       confidence: scoreConfidence(parsed.data.confianca, validationFlags),
       validationFlags,
-      raw: parsedJson,
+      // Guardar o modelo usado permite perceber, mais tarde, se uma leitura
+      // duvidosa veio do modelo preferido ou de um de recurso.
+      raw: { modelo: usedModel, ...(parsedJson as object) },
       error: null,
       simulated: false,
     };
@@ -148,10 +169,8 @@ function mensagemDeErro(error: unknown): string {
   const bruto = error instanceof Error ? error.message : String(error);
 
   if (/RESOURCE_EXHAUSTED|"code":\s*429|quota/i.test(bruto)) {
-    const espera = bruto.match(/retry in ([\d.]+)s/i)?.[1];
-    return espera
-      ? `Limite de pedidos do plano do Gemini atingido. Tente novamente dentro de ${Math.ceil(Number(espera))} segundos.`
-      : "Limite diário de pedidos do plano do Gemini atingido. Tente novamente mais tarde ou ative a faturação no Google AI Studio.";
+    // Só chega aqui depois de todos os modelos da cadeia terem falhado.
+    return "Limite diário de pedidos esgotado em todos os modelos configurados. Tente amanhã ou ative a faturação no Google AI Studio.";
   }
 
   if (/"code":\s*(500|502|503|504)|UNAVAILABLE/i.test(bruto)) {
@@ -166,37 +185,72 @@ function mensagemDeErro(error: unknown): string {
 }
 
 /**
- * Sobrecarga do modelo (503) e limites de pedidos (429) são transitórios: sem
- * repetição, uma fatura perfeitamente legível ficaria marcada como falhada.
+ * Percorre a cadeia de modelos até um responder.
+ *
+ * Sobrecarga (503) é transitória: repete no mesmo modelo com espera crescente.
+ * Quota esgotada (429) é diária: repetir no mesmo modelo não adianta nada, por
+ * isso passa-se imediatamente ao modelo seguinte, que tem quota própria.
+ *
+ * O utilizador não precisa de saber que isto acontece — é essa a intenção.
  */
-async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
-  let lastError: unknown;
+async function generateWithFallback<T>(
+  _ai: GoogleGenAI,
+  operation: (model: string) => Promise<T>,
+): Promise<{ response: T; modelo: string }> {
+  const modelos = modelChain();
+  let ultimoErro: unknown;
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (!isRetryable(error) || attempt === MAX_ATTEMPTS - 1) throw error;
+  for (const modelo of modelos) {
+    if (isQuotaError(ultimoErro)) {
+      console.warn(`[ocr] quota esgotada, a passar para o modelo ${modelo}`);
+    }
 
-      // 2s, 4s, 8s — dá tempo à capacidade do modelo de libertar.
-      await new Promise((resolve) => setTimeout(resolve, 2 ** (attempt + 1) * 1000));
+    for (let tentativa = 0; tentativa < MAX_ATTEMPTS; tentativa++) {
+      try {
+        return { response: await operation(modelo), modelo };
+      } catch (error) {
+        ultimoErro = error;
+
+        // Quota esgotada ou modelo inexistente: não vale a pena insistir.
+        if (isQuotaError(error) || isModelUnavailable(error)) break;
+
+        if (!isRetryable(error) || tentativa === MAX_ATTEMPTS - 1) break;
+
+        // 2s, 4s — dá tempo à capacidade do modelo de libertar.
+        await new Promise((resolve) => setTimeout(resolve, 2 ** (tentativa + 1) * 1000));
+      }
     }
   }
 
-  throw lastError;
+  throw ultimoErro;
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === "string" ? error : "";
+}
+
+/** Limite de pedidos atingido: o modelo não volta a responder hoje. */
+function isQuotaError(error: unknown): boolean {
+  const texto = errorText(error);
+  return /RESOURCE_EXHAUSTED|"code":\s*429/i.test(texto);
+}
+
+/** Modelo retirado ou indisponível para esta conta. */
+function isModelUnavailable(error: unknown): boolean {
+  const texto = errorText(error);
+  return /"code":\s*40[034]|NOT_FOUND|no longer available/i.test(texto);
 }
 
 function isRetryable(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-
-  const status = (error as { status?: number }).status;
+  const status = (error as { status?: number })?.status;
   if (typeof status === "number") return RETRYABLE_STATUS.includes(status);
 
-  // O SDK nem sempre expõe o status: a mensagem traz o JSON do erro.
-  return RETRYABLE_STATUS.some((code) => error.message.includes(`"code":${code}`))
-    || error.message.includes("UNAVAILABLE")
-    || error.message.includes("RESOURCE_EXHAUSTED");
+  const texto = errorText(error);
+  return (
+    RETRYABLE_STATUS.some((code) => texto.includes(`"code":${code}`)) ||
+    /UNAVAILABLE/i.test(texto)
+  );
 }
 
 async function prepareDocument(
