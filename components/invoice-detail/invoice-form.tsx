@@ -77,17 +77,27 @@ export function InvoiceForm({
   const [costCenterId, setCostCenterId] = useState(invoice.cost_center_id ?? "");
   const [linhas, setLinhas] = useState<LineDraft[]>(toDraft(invoice));
 
-  const totals = useMemo(() => {
-    const base = linhas.reduce(
-      (sum, line) => sum + num(line.quantidade) * num(line.preco_unitario) - num(line.desconto),
-      0,
-    );
-    const iva = linhas.reduce((sum, line) => {
-      const bruto = num(line.quantidade) * num(line.preco_unitario) - num(line.desconto);
-      return sum + (bruto * num(line.iva_percentagem)) / 100 + num(line.outro_imposto);
-    }, 0);
-    return { base, iva, total: base + iva };
-  }, [linhas]);
+  // Valores lidos do documento, não derivados das linhas: em talões e faturas
+  // simplificadas os preços das linhas já incluem IVA, e somá-los daria uma
+  // base tributável errada.
+  const [baseTributavel, setBaseTributavel] = useState(String(invoice.base_tributavel));
+  const [ivaTotal, setIvaTotal] = useState(String(invoice.iva_total));
+  const [total, setTotal] = useState(String(invoice.total));
+
+  const somaLinhas = useMemo(
+    () =>
+      linhas.reduce(
+        (sum, line) => sum + num(line.quantidade) * num(line.preco_unitario) - num(line.desconto),
+        0,
+      ),
+    [linhas],
+  );
+
+  const valoresFecham =
+    Math.abs(num(baseTributavel) + num(ivaTotal) - num(total)) <=
+    Math.max(0.02, Math.abs(num(total)) * 0.005);
+  const linhasBatemComTotal = Math.abs(somaLinhas - num(total)) <= 0.02;
+  const linhasBatemComBase = Math.abs(somaLinhas - num(baseTributavel)) <= 0.02;
 
   const flags = invoice.validation_flags ?? {};
 
@@ -114,6 +124,9 @@ export function InvoiceForm({
       fornecedor_nif: fornecedorNif || null,
       fornecedor_iban: fornecedorIban || null,
       cost_center_id: costCenterId || null,
+      base_tributavel: num(baseTributavel),
+      iva_total: num(ivaTotal),
+      total: num(total),
       linhas: linhas.map((line) => ({
         descricao: line.descricao || null,
         quantidade: num(line.quantidade),
@@ -314,21 +327,53 @@ export function InvoiceForm({
         <Card>
           <CardHeader>
             <h2 className="font-medium">Valores</h2>
-            <p className="text-sm text-muted">Calculado automaticamente a partir das linhas abaixo</p>
+            <p className="text-sm text-muted">
+              Lidos do documento. Corrija-os se não corresponderem ao que está impresso.
+            </p>
           </CardHeader>
-          <CardBody className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-muted">Base tributável</p>
-              <p className="text-lg font-medium">{formatNumber(totals.base)}</p>
+          <CardBody className="space-y-3">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Base tributável">
+                <Input
+                  value={baseTributavel}
+                  disabled={readOnly}
+                  inputMode="decimal"
+                  onChange={(e) => setBaseTributavel(e.target.value)}
+                />
+              </Field>
+              <Field label="IVA">
+                <Input
+                  value={ivaTotal}
+                  disabled={readOnly}
+                  inputMode="decimal"
+                  onChange={(e) => setIvaTotal(e.target.value)}
+                />
+              </Field>
+              <Field label="Total">
+                <Input
+                  value={total}
+                  disabled={readOnly}
+                  inputMode="decimal"
+                  onChange={(e) => setTotal(e.target.value)}
+                />
+              </Field>
             </div>
-            <div>
-              <p className="text-sm text-muted">IVA</p>
-              <p className="text-lg font-medium">{formatNumber(totals.iva)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted">Total</p>
-              <p className="text-lg font-semibold">{formatNumber(totals.total)}</p>
-            </div>
+
+            {!valoresFecham ? (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Base tributável mais IVA dão {formatNumber(num(baseTributavel) + num(ivaTotal))}, mas
+                o total indica {formatNumber(num(total))}. Confirme os valores no documento.
+              </p>
+            ) : null}
+
+            <p className="text-xs text-muted">
+              Soma das linhas abaixo: {formatNumber(somaLinhas)}
+              {linhasBatemComTotal
+                ? " — igual ao total, ou seja, os valores das linhas incluem IVA."
+                : linhasBatemComBase
+                  ? " — igual à base tributável, ou seja, as linhas são sem IVA."
+                  : ""}
+            </p>
           </CardBody>
         </Card>
 

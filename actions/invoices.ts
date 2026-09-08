@@ -68,6 +68,10 @@ export interface InvoiceFormValues {
   fornecedor_nif: string | null;
   fornecedor_iban: string | null;
   cost_center_id: string | null;
+  /** Valores tal como impressos no documento — não derivados das linhas. */
+  base_tributavel: number;
+  iva_total: number;
+  total: number;
   linhas: {
     descricao: string | null;
     quantidade: number;
@@ -93,22 +97,11 @@ export async function saveInvoice(invoiceId: string, values: InvoiceFormValues):
 
   if (!current) throw new Error("Fatura não encontrada");
 
-  // Os totais derivam sempre das linhas: é o que a UI mostra como calculado.
-  const totals = values.linhas.reduce(
-    (acc, linha) => {
-      const bruto = linha.quantidade * linha.preco_unitario - linha.desconto;
-      const iva = (bruto * linha.iva_percentagem) / 100;
-      return {
-        base: acc.base + bruto,
-        iva: acc.iva + iva + linha.outro_imposto,
-      };
-    },
-    { base: 0, iva: 0 },
-  );
-
-  const baseTributavel = Number(totals.base.toFixed(2));
-  const ivaTotal = Number(totals.iva.toFixed(2));
-  const total = Number((baseTributavel + ivaTotal).toFixed(2));
+  // Os totais são os que o utilizador tem no ecrã, lidos do documento — nunca
+  // recalculados a partir das linhas, que em talões já incluem IVA.
+  const baseTributavel = Number(values.base_tributavel.toFixed(2));
+  const ivaTotal = Number(values.iva_total.toFixed(2));
+  const total = Number(values.total.toFixed(2));
 
   await supabase
     .from("invoices")

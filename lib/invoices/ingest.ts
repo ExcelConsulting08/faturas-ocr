@@ -265,24 +265,43 @@ export async function ingestInvoice(
   return { invoiceId, status };
 }
 
+/**
+ * Os totais são os que estão impressos no documento — nunca calculados.
+ *
+ * Calcular a partir das linhas dá resultados errados sempre que os valores das
+ * linhas já incluem IVA, como acontece nas faturas simplificadas portuguesas:
+ * num talão de 31,00 com IVA a 13%, somar as linhas dá base 31,00 quando o
+ * documento diz base 27,43 e IVA 3,57.
+ *
+ * A dedução a partir das linhas fica reservada para documentos que não
+ * apresentem qualquer resumo de valores.
+ */
 function computeTotals(result: ExtractionResult) {
+  const { base_tributavel, iva_total, total } = result.totais;
+
+  if (total !== null || base_tributavel !== null || iva_total !== null) {
+    // Preencher apenas o que faltar, a partir dos outros dois valores lidos.
+    const base = base_tributavel ?? (total !== null && iva_total !== null ? total - iva_total : 0);
+    const iva = iva_total ?? (total !== null && base_tributavel !== null ? total - base_tributavel : 0);
+
+    return {
+      baseTributavel: Number(base.toFixed(2)),
+      ivaTotal: Number(iva.toFixed(2)),
+      total: Number((total ?? base + iva).toFixed(2)),
+    };
+  }
+
+  // Sem resumo de valores no documento: resta somar as linhas.
   const linhasBase = result.linhas.reduce((sum, linha) => sum + (linha.total_linha ?? 0), 0);
   const linhasIva = result.linhas.reduce(
     (sum, linha) => sum + ((linha.total_linha ?? 0) * (linha.iva_percentagem ?? 0)) / 100,
     0,
   );
 
-  // As linhas são a fonte de verdade; os totais do documento são o recurso
-  // quando a fatura não discrimina linhas.
-  const baseTributavel = linhasBase > 0 ? linhasBase : result.totais.base_tributavel ?? 0;
-  const ivaTotal = linhasBase > 0 ? linhasIva : result.totais.iva_total ?? 0;
-  const total =
-    linhasBase > 0 ? baseTributavel + ivaTotal : result.totais.total ?? baseTributavel + ivaTotal;
-
   return {
-    baseTributavel: Number(baseTributavel.toFixed(2)),
-    ivaTotal: Number(ivaTotal.toFixed(2)),
-    total: Number(total.toFixed(2)),
+    baseTributavel: Number(linhasBase.toFixed(2)),
+    ivaTotal: Number(linhasIva.toFixed(2)),
+    total: Number((linhasBase + linhasIva).toFixed(2)),
   };
 }
 

@@ -24,6 +24,7 @@ export const extractionSchema = z.object({
     is_credit_note: z.boolean().nullable(),
   }),
   linhas: z.array(lineItemSchema),
+  linhas_incluem_iva: z.boolean().nullable(),
   totais: z.object({
     base_tributavel: z.number().nullable(),
     iva_total: z.number().nullable(),
@@ -99,12 +100,29 @@ export const geminiResponseSchema = {
         ],
       },
     },
+    linhas_incluem_iva: {
+      type: "boolean",
+      nullable: true,
+      description: "true se os valores das linhas já incluem IVA (comum em talões)",
+    },
     totais: {
       type: "object",
       properties: {
-        base_tributavel: { type: "number", nullable: true, description: "Total sem IVA" },
-        iva_total: { type: "number", nullable: true, description: "Montante total de IVA" },
-        total: { type: "number", nullable: true, description: "Total a pagar com IVA" },
+        base_tributavel: {
+          type: "number",
+          nullable: true,
+          description: "Valor sem IVA, tal como impresso no documento. Nunca calculado.",
+        },
+        iva_total: {
+          type: "number",
+          nullable: true,
+          description: "Montante de IVA em euros, tal como impresso. Nunca calculado.",
+        },
+        total: {
+          type: "number",
+          nullable: true,
+          description: "Total a pagar, tal como impresso no documento.",
+        },
       },
       required: ["base_tributavel", "iva_total", "total"],
       propertyOrdering: ["base_tributavel", "iva_total", "total"],
@@ -114,6 +132,13 @@ export const geminiResponseSchema = {
       description: "Confiança global na extração, entre 0 e 1",
     },
   },
-  required: ["fornecedor", "fatura", "linhas", "totais", "confianca"],
-  propertyOrdering: ["fornecedor", "fatura", "linhas", "totais", "confianca"],
+  required: ["fornecedor", "fatura", "linhas", "linhas_incluem_iva", "totais", "confianca"],
+  propertyOrdering: [
+    "fornecedor",
+    "fatura",
+    "linhas",
+    "linhas_incluem_iva",
+    "totais",
+    "confianca",
+  ],
 };

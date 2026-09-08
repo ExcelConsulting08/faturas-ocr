@@ -134,10 +134,35 @@ export async function extractInvoice(options: {
       confidence: 0,
       validationFlags: {},
       raw: null,
-      error: error instanceof Error ? error.message : "Erro desconhecido na extração",
+      error: mensagemDeErro(error),
       simulated: false,
     };
   }
+}
+
+/**
+ * A API devolve blocos de JSON que não dizem nada a quem usa a aplicação.
+ * Traduzimos os casos conhecidos para linguagem acionável.
+ */
+function mensagemDeErro(error: unknown): string {
+  const bruto = error instanceof Error ? error.message : String(error);
+
+  if (/RESOURCE_EXHAUSTED|"code":\s*429|quota/i.test(bruto)) {
+    const espera = bruto.match(/retry in ([\d.]+)s/i)?.[1];
+    return espera
+      ? `Limite de pedidos do plano do Gemini atingido. Tente novamente dentro de ${Math.ceil(Number(espera))} segundos.`
+      : "Limite diário de pedidos do plano do Gemini atingido. Tente novamente mais tarde ou ative a faturação no Google AI Studio.";
+  }
+
+  if (/"code":\s*(500|502|503|504)|UNAVAILABLE/i.test(bruto)) {
+    return "O serviço de extração está temporariamente sobrecarregado. Tente novamente dentro de alguns minutos.";
+  }
+
+  if (/API key|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(bruto)) {
+    return "A chave de acesso ao Gemini é inválida ou não tem permissões. Verifique a GEMINI_API_KEY.";
+  }
+
+  return bruto.length > 300 ? `${bruto.slice(0, 300)}…` : bruto;
 }
 
 /**
@@ -194,9 +219,6 @@ function validate(result: ExtractionResult): ValidationFlags {
   const nif = normalizeNif(result.fornecedor.nif);
   const iban = normalizeIban(result.fornecedor.iban);
 
-  const linhasTotal = result.linhas.reduce((sum, linha) => sum + (linha.total_linha ?? 0), 0);
-  const baseTributavel = result.totais.base_tributavel;
-
   return {
     // Sem NIF não há nada a validar: marcamos como falso para penalizar a confiança,
     // já que uma fatura sem NIF legível é sempre suspeita.
@@ -204,11 +226,26 @@ function validate(result: ExtractionResult): ValidationFlags {
     // IBAN é opcional: ausente conta como válido para não penalizar injustamente.
     iban_valid: iban ? isValidIban(iban) : true,
     dates_valid: areDatesValid(result.fatura.data_emissao, result.fatura.data_vencimento),
-    totals_match:
-      baseTributavel === null || linhasTotal === 0
-        ? true
-        : Math.abs(linhasTotal - baseTributavel) <= Math.max(0.02, baseTributavel * 0.01),
+    totals_match: totaisCoerentes(result),
+    totals_present: result.totais.total !== null && result.totais.base_tributavel !== null,
   };
+}
+
+/**
+ * Verifica se os três valores lidos batem certo entre si: base + IVA = total.
+ *
+ * É esta a verificação que apanha leituras erradas dos totais. Sem ela, uma
+ * base tributável trocada pelo total passa despercebida e a fatura é
+ * auto-confirmada com valores errados.
+ */
+function totaisCoerentes(result: ExtractionResult): boolean {
+  const { base_tributavel, iva_total, total } = result.totais;
+
+  if (base_tributavel === null || iva_total === null || total === null) return false;
+
+  // Tolerância de um cêntimo por arredondamentos, ou 0,5% em valores altos.
+  const tolerancia = Math.max(0.02, Math.abs(total) * 0.005);
+  return Math.abs(base_tributavel + iva_total - total) <= tolerancia;
 }
 
 /**
@@ -221,7 +258,12 @@ function scoreConfidence(modelConfidence: number, flags: ValidationFlags): numbe
   if (flags.nif_valid === false) score *= 0.75;
   if (flags.iban_valid === false) score *= 0.9;
   if (flags.dates_valid === false) score *= 0.8;
-  if (flags.totals_match === false) score *= 0.7;
+
+  // Valores são a razão de ser da aplicação: se não fecham ou não foram
+  // encontrados no documento, a fatura tem de ir a revisão, por muito confiante
+  // que o modelo diga estar. Um erro de leitura aqui vai direto à contabilidade.
+  if (flags.totals_present === false) score = Math.min(score, 0.5);
+  if (flags.totals_match === false) score = Math.min(score, 0.45);
 
   return Number(score.toFixed(4));
 }
@@ -264,6 +306,7 @@ function simulatedExtraction(fileName: string): ExtractionOutcome {
         total_linha: base,
       },
     ],
+    linhas_incluem_iva: false,
     totais: { base_tributavel: base, iva_total: iva, total: Number((base + iva).toFixed(2)) },
     // Entre os limiares por omissão (0.6 e 0.9): dados fictícios têm de passar
     // por revisão humana, mas não devem aparecer como falha de leitura.

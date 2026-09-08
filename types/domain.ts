@@ -62,7 +62,10 @@ export interface ValidationFlags {
   nif_valid?: boolean;
   iban_valid?: boolean;
   dates_valid?: boolean;
+  /** Base + IVA fecham com o total lido. */
   totals_match?: boolean;
+  /** Base e total foram encontrados impressos no documento. */
+  totals_present?: boolean;
 }
 
 export interface Invoice {
