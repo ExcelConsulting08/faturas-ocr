@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { canWrite, requireOrgContext } from "@/lib/auth/context";
 import { ingestInvoice, validateFile } from "@/lib/invoices/ingest";
-import { syncInvoiceFile } from "@/lib/sharepoint/sync";
+import { syncInvoiceFile } from "@/lib/storage/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { deliverInvoice } from "@/lib/webhooks/deliver";

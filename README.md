@@ -15,7 +15,8 @@ SharePoint e recolha automática a partir de caixas de correio por país.
 - **Deteção de duplicados** por fornecedor + número + total
 - **Centros de custo** com regras automáticas por fornecedor
 - **Dashboard** com gastos por mês, por estado, por centro de custo, por país e resumo de IVA
-- **Arquivo no SharePoint** da empresa, organizado por organização / país / ano / mês
+- **Arquivo dos documentos** organizado por organização / país / ano / mês, no Supabase Storage
+  por omissão ou no SharePoint da empresa quando este estiver configurado
 - **Integração ERP** por webhook assinado (HMAC-SHA256)
 - **Gestão de utilizadores própria**, independente do Microsoft: papéis admin/membro/leitor
 
@@ -49,8 +50,9 @@ Preencha pelo menos as três variáveis do Supabase. As restantes são opcionais
 - **Sem `GEMINI_API_KEY`** a aplicação corre em **modo simulado** — o fluxo completo funciona,
   mas os dados extraídos são fictícios. Útil para experimentar sem custos.
   A chave obtém-se em [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-- **Sem as variáveis do Microsoft Graph / SharePoint**, o upload e a extração funcionam na mesma;
-  apenas não há arquivo do ficheiro original nem recolha por email.
+- **Sem as variáveis do Microsoft Graph / SharePoint**, os documentos são guardados no **Supabase
+  Storage** (bucket `faturas`, privado) e tudo funciona — upload, extração e visualizador. Só a
+  recolha automática por email fica indisponível, por depender das caixas Microsoft 365.
 
 ### 3. Correr
 
@@ -62,7 +64,10 @@ Abra http://localhost:3000, crie conta e siga para a criação da organização.
 
 ## Configuração do Microsoft 365 (opcional)
 
-Necessária para o arquivo em SharePoint e a recolha de faturas por email.
+Necessária para a recolha de faturas por email e para trocar o armazenamento do Supabase Storage
+pelo SharePoint da empresa. Quando `SHAREPOINT_DRIVE_ID` e as credenciais do Graph estão presentes,
+os documentos novos passam a ser guardados no SharePoint; os antigos permanecem onde foram
+gravados, porque cada fatura regista o seu fornecedor de armazenamento.
 
 1. **Registar a aplicação** no Azure AD (Microsoft Entra ID) → App registrations → New registration.
 2. Em **Certificates & secrets**, criar um client secret → `MS_GRAPH_CLIENT_SECRET`.

@@ -19,7 +19,7 @@ export function FileViewer({
         <FileQuestion className="h-8 w-8 text-gray-400" />
         <p className="text-sm font-medium">Documento indisponível</p>
         <p className="text-sm text-muted">
-          O SharePoint não está configurado ou o ficheiro não foi guardado.
+          O ficheiro original não chegou a ser guardado nesta fatura.
         </p>
       </div>
     );

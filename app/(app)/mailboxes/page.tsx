@@ -1,7 +1,7 @@
 import { MailboxesView } from "@/components/mailboxes/mailboxes-view";
 import { requireAdmin } from "@/lib/auth/context";
 import { isExtractionEngineReady } from "@/lib/ocr/extract";
-import { missingSharePointEnvVars } from "@/lib/sharepoint/drive";
+import { storageProviderName } from "@/lib/storage";
 import { missingGraphEnvVars } from "@/lib/graph/client";
 import { createClient } from "@/lib/supabase/server";
 import type { CollectionRun, CollectionSettings, CountryMailbox } from "@/types/domain";
@@ -69,7 +69,7 @@ export default async function MailboxesPage() {
         totalInSystem={emailTotalResult.count ?? 0}
         extractionReady={isExtractionEngineReady()}
         missingGraphVars={missingGraphEnvVars()}
-        missingStorageVars={missingSharePointEnvVars()}
+        storageName={storageProviderName()}
       />
     </div>
   );

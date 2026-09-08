@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { FileViewer } from "@/components/invoice-detail/file-viewer";
 import { InvoiceForm } from "@/components/invoice-detail/invoice-form";
 import { canWrite, requireOrgContext } from "@/lib/auth/context";
-import { getDownloadUrl, isSharePointConfigured } from "@/lib/sharepoint/drive";
+import { getStorageFor } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 import type { CostCenter, InvoiceWithRelations } from "@/types/domain";
 
@@ -47,9 +47,10 @@ export default async function InvoiceDetailPage({
   ]);
 
   let downloadUrl: string | null = null;
-  if (invoice.sharepoint_item_id && isSharePointConfigured()) {
+  const storage = getStorageFor(invoice.storage_provider);
+  if (storage && invoice.storage_id) {
     try {
-      downloadUrl = await getDownloadUrl(invoice.sharepoint_item_id);
+      downloadUrl = await storage.getViewUrl(invoice.storage_id);
     } catch {
       // Sem URL o visualizador mostra o estado vazio; os dados continuam editáveis.
     }
@@ -64,8 +65,8 @@ export default async function InvoiceDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Faturas
         </Link>
-        {invoice.sharepoint_path ? (
-          <span className="truncate text-xs text-gray-400">{invoice.sharepoint_path}</span>
+        {invoice.storage_path ? (
+          <span className="truncate text-xs text-gray-400">{invoice.storage_path}</span>
         ) : null}
       </div>
 

@@ -7,12 +7,12 @@ import { findDuplicate } from "@/lib/duplicates/detect";
 import { decideStatus, type StatusPreferences } from "@/lib/invoices/status";
 import { extractInvoice } from "@/lib/ocr/extract";
 import type { ExtractionResult } from "@/lib/ocr/schema";
-import { isSharePointConfigured, readablePath, uploadFile } from "@/lib/sharepoint/drive";
 import { buildFileName, buildFolderPath, extensionFor } from "@/lib/sharepoint/paths";
-import { syncInvoiceFile } from "@/lib/sharepoint/sync";
+import { getStorage } from "@/lib/storage";
+import { syncInvoiceFile } from "@/lib/storage/sync";
 import { normalizeIban } from "@/lib/validators/iban";
 import { normalizeNif } from "@/lib/validators/nif";
-import type { InvoiceStatus } from "@/types/domain";
+import type { Invoice, InvoiceStatus } from "@/types/domain";
 
 export const ACCEPTED_MIME_TYPES = [
   "application/pdf",
@@ -94,37 +94,37 @@ export async function ingestInvoice(
   const invoiceId = created.id;
   const extension = extensionFor(input.fileName, input.mimeType);
 
-  // 2. Guardar o original no SharePoint, ainda em _Entrada (sem data nem número).
-  if (isSharePointConfigured()) {
-    try {
-      const item = await uploadFile({
-        folderPath: buildFolderPath({
-          organizationId: input.organizationId,
-          pais: input.pais,
-          dataEmissao: null,
-        }),
-        fileName: buildFileName({ numero: null, invoiceId, extension }),
-        buffer: input.buffer,
-        mimeType: input.mimeType,
-      });
+  // 2. Guardar o original, ainda em _Entrada (sem data nem número conhecidos).
+  const storage = getStorage();
+  try {
+    const stored = await storage.upload({
+      folderPath: buildFolderPath({
+        organizationId: input.organizationId,
+        pais: input.pais,
+        dataEmissao: null,
+      }),
+      fileName: buildFileName({ numero: null, invoiceId, extension }),
+      buffer: input.buffer,
+      mimeType: input.mimeType,
+    });
 
-      await supabase
-        .from("invoices")
-        .update({
-          sharepoint_drive_id: item.parentReference?.driveId ?? null,
-          sharepoint_item_id: item.id,
-          sharepoint_path: readablePath(item),
-          file_name: item.name,
-        })
-        .eq("id", invoiceId);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro no armazenamento";
-      await supabase
-        .from("invoices")
-        .update({ status: "falhada", extraction_error: `Falha ao guardar o ficheiro: ${message}` })
-        .eq("id", invoiceId);
-      return { invoiceId, status: "falhada", error: message };
-    }
+    await supabase
+      .from("invoices")
+      .update({
+        storage_provider: storage.provider,
+        storage_container: stored.container,
+        storage_id: stored.id,
+        storage_path: stored.path,
+        file_name: stored.name,
+      })
+      .eq("id", invoiceId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro no armazenamento";
+    await supabase
+      .from("invoices")
+      .update({ status: "falhada", extraction_error: `Falha ao guardar o ficheiro: ${message}` })
+      .eq("id", invoiceId);
+    return { invoiceId, status: "falhada", error: message };
   }
 
   // 3. Extração.
@@ -235,16 +235,17 @@ export async function ingestInvoice(
 
   // 10. Mover o ficheiro para a pasta definitiva, agora que há número e data.
   try {
+    const { data: guardado } = await supabase
+      .from("invoices")
+      .select("storage_provider, storage_id")
+      .eq("id", invoiceId)
+      .single<Pick<Invoice, "storage_provider" | "storage_id">>();
+
     const synced = await syncInvoiceFile({
       id: invoiceId,
       organization_id: input.organizationId,
-      sharepoint_item_id: (
-        await supabase
-          .from("invoices")
-          .select("sharepoint_item_id")
-          .eq("id", invoiceId)
-          .single<{ sharepoint_item_id: string | null }>()
-      ).data?.sharepoint_item_id ?? null,
+      storage_provider: guardado?.storage_provider ?? null,
+      storage_id: guardado?.storage_id ?? null,
       numero: result.fatura.numero,
       pais: input.pais ?? null,
       data_emissao: result.fatura.data_emissao,

@@ -25,7 +25,22 @@
       "PowerShell(npm uninstall @anthropic-ai/sdk 2>&1)",
       "PowerShell(npx tsx --env-file=.env.local scripts/list-models.ts 2>&1)",
       "PowerShell(npx tsx --env-file=.env.local scripts/test-gemini.ts gemini-2.5-flash gemini-flash-latest gemini-2.5-flash-lite 2>&1)",
-      "PowerShell(npx tsx --env-file=.env.local scripts/test-gemini.ts gemini-3.6-flash gemini-3.5-flash gemini-3.5-flash-lite 2>&1)"
+      "PowerShell(npx tsx --env-file=.env.local scripts/test-gemini.ts gemini-3.6-flash gemini-3.5-flash gemini-3.5-flash-lite 2>&1)",
+      "PowerShell($p = Start-Process -FilePath \"cmd.exe\" -ArgumentList '/c', '\"Arrancar App.bat\"' -PassThru -WindowStyle Hidden; Start-Sleep -Seconds 25; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 15; \"HTTP \" + $r.StatusCode + \" - servidor a responder\"; if \\($r.Content -match \"Inicie sessão\"\\) { \"Pagina de login carregada corretamente\" } } catch { \"Erro: \" + $_.Exception.Message })",
+      "PowerShell(Start-Sleep -Seconds 20; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 20; \"HTTP \" + $r.StatusCode; if \\($r.Content -match \"Inicie sess\"\\) { \"Pagina de login OK\" } } catch { \"Ainda sem resposta: \" + $_.Exception.Message; \"--- processos node ---\"; Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, StartTime | Format-Table -AutoSize | Out-String })",
+      "PowerShell(netstat -ano | Select-String \"LISTENING\" | Select-String \":300\" ; \"--- portas node ---\"; Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -in \\(Get-Process node -ErrorAction SilentlyContinue\\).Id } | Select-Object LocalPort, OwningProcess | Format-Table -AutoSize | Out-String)",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt \\(Get-Date\\).AddMinutes\\(-5\\) } | Stop-Process -Force -ErrorAction SilentlyContinue; cmd.exe /c \"`\"Arrancar App.bat`\" > `\"$env:TEMP\\\\bat-out.txt`\" 2>&1\" ; Start-Sleep -Seconds 3; Get-Content \"$env:TEMP\\\\bat-out.txt\" -TotalCount 30)",
+      "PowerShell($out = \"$env:TEMP\\\\bat-out.txt\"; & cmd.exe /c \"call `\".\\\\Arrancar App.bat`\"\" 2>&1 | Out-File -FilePath $out -Encoding utf8; Start-Sleep -Seconds 2; Get-Content $out -TotalCount 25)",
+      "PowerShell(Start-Sleep -Seconds 15; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/login\" -UseBasicParsing -TimeoutSec 20; \"HTTP \" + $r.StatusCode; if \\($r.Content -match \"Inicie sess\"\\) { \"OK - pagina de login carregada\" } } catch { \"sem resposta: \" + $_.Exception.Message })",
+      "Bash(git restore *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git push *)",
+      "mcp__claude-in-chrome__list_connected_browsers",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__browser_batch",
+      "PowerShell(Set-Clipboard)"
     ]
   }
 }

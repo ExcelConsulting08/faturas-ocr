@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         Entrada: invoice.entrada_at,
         Origem: invoice.origin,
         Confianca: invoice.confidence_score ?? "",
-        Ficheiro: invoice.sharepoint_path ?? "",
+        Ficheiro: invoice.storage_path ?? "",
       });
     }
 

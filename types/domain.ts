@@ -71,9 +71,10 @@ export interface Invoice {
   supplier_id: string | null;
   cost_center_id: string | null;
 
-  sharepoint_drive_id: string | null;
-  sharepoint_item_id: string | null;
-  sharepoint_path: string | null;
+  storage_provider: "supabase" | "sharepoint" | null;
+  storage_container: string | null;
+  storage_id: string | null;
+  storage_path: string | null;
   file_name: string | null;
   file_size: number | null;
   mime_type: string | null;

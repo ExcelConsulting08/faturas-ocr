@@ -128,7 +128,7 @@ export function MailboxesView({
   totalInSystem,
   extractionReady,
   missingGraphVars,
-  missingStorageVars,
+  storageName,
 }: {
   mailboxes: MailboxWithCount[];
   settings: CollectionSettings | null;
@@ -136,7 +136,7 @@ export function MailboxesView({
   totalInSystem: number;
   extractionReady: boolean;
   missingGraphVars: string[];
-  missingStorageVars: string[];
+  storageName: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -188,11 +188,7 @@ export function MailboxesView({
                   ? "Autenticação no Microsoft Graph configurada."
                   : `${missingGraphVars.join(" e ")} em falta no .env.local.`}
               </p>
-              {missingStorageVars.length > 0 ? (
-                <p className="text-sm text-amber-700">
-                  Armazenamento SharePoint incompleto: {missingStorageVars.join(", ")}.
-                </p>
-              ) : null}
+              <p className="text-sm text-muted">Documentos guardados em: {storageName}.</p>
             </div>
           </div>
 
