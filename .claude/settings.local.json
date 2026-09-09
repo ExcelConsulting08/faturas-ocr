@@ -96,7 +96,24 @@
       "Skill(update-config:*)",
       "Bash(node \"C:/Users/jmsan/AppData/Local/Temp/claude/D--Trabalhos-2026-09---Setembro-Claude---Teste-Clone-OCR/cdb53ef1-c5a0-45fb-bfd2-9ce657ba3930/scratchpad/hook-test.mjs\")",
       "Bash(node .claude/hooks/claude-md-drift.mjs)",
-      "Bash(echo \"ok \\(silencio para carga vazia, exit $?\\)\")"
+      "Bash(echo \"ok \\(silencio para carga vazia, exit $?\\)\")",
+      "Bash(curl -s --max-time 20 \"https://api.github.com/repos/ExcelConsulting08/faturas-ocr/actions/workflows\")",
+      "Bash(curl -s --max-time 20 \"https://api.github.com/repos/ExcelConsulting08/faturas-ocr/contents/.github/workflows/keep-alive.yml?ref=main\")",
+      "Bash(curl -s --max-time 20 \"https://api.github.com/repos/ExcelConsulting08/faturas-ocr/actions/workflows/keep-alive.yml/runs?per_page=5\")",
+      "Bash(curl -s --max-time 25 \"https://api.github.com/repos/ExcelConsulting08/faturas-ocr/actions/workflows/keep-alive.yml/runs?per_page=3\")",
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "PowerShell(npm.cmd run verify 2>&1)",
+      "PowerShell(npx.cmd tsc --noEmit 2>&1)",
+      "PowerShell(if \\(Test-Path \".env.local\"\\) { \"env.local existe\" } else { \"env.local EM FALTA\" }; Get-Content .env.local -ErrorAction SilentlyContinue | Select-String -Pattern \"^GEMINI_\\(API_KEY|MODEL\\)\" | ForEach-Object { \\($_ -split \"=\"\\)[0] + \"=<definida>\" })",
+      "PowerShell(npx.cmd tsx --conditions=react-server --env-file=.env.local scripts/test-ficheiro.ts scripts/fixtures/lote-duas-faturas.pdf PT 2>&1)",
+      "PowerShell(npx.cmd tsx --conditions=react-server --env-file=.env.local scripts/test-ficheiro.ts \"D:\\\\Trabalhos\\\\2026\\\\09 - Setembro\\\\Claude - PromptInvoice testes\\\\PDF_combinado_teste1.pdf\" PT 2>&1)",
+      "PowerShell(Copy-Item lib/ocr/prompt.ts \"$env:TEMP\\\\prompt.ts.bak\" -Force; Copy-Item lib/ocr/schema.ts \"$env:TEMP\\\\schema.ts.bak\" -Force; git stash push -m \"correcao-numero\" -- lib/ocr/prompt.ts lib/ocr/schema.ts; git status --short lib/ocr/)",
+      "PowerShell(git stash pop)",
+      "PowerShell($env:GEMINI_MODEL = \"gemini-3.5-flash\"; $env:GEMINI_FALLBACK_MODELS = \"gemini-3.5-flash\"; npx.cmd tsx --conditions=react-server --env-file=.env.local scripts/test-ficheiro.ts \"D:\\\\Trabalhos\\\\2026\\\\09 - Setembro\\\\Claude - PromptInvoice testes\\\\PDF_combinado_teste1.pdf\" PT 2>&1 | Select-String -Pattern \"numero|Fatura \\\\d de|Extração|Intervalos\")",
+      "PowerShell($env:GEMINI_MODEL = \"gemini-flash-latest\"; $env:GEMINI_FALLBACK_MODELS = \"gemini-flash-latest\"; npx.cmd tsx --conditions=react-server --env-file=.env.local scripts/test-ficheiro.ts \"D:\\\\Trabalhos\\\\2026\\\\09 - Setembro\\\\Claude - PromptInvoice testes\\\\PDF_combinado_teste1.pdf\" PT 2>&1 | Select-String -Pattern \"numero|Fatura \\\\d de|Extração\")",
+      "PowerShell(Get-Content .env.local | ForEach-Object { if \\($_ -match \"^\\([A-Z_]+\\)=\"\\) { $matches[1] } })",
+      "PowerShell(npx.cmd tsx --env-file=.env.local scripts/diagnostico-extracao.ts \"2026A17\" 2>&1)",
+      "PowerShell(npm.cmd run lint 2>&1)"
     ]
   }
 }
