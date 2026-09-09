@@ -77,7 +77,14 @@ const geminiDocumentSchema = {
     fatura: {
       type: "object",
       properties: {
-        numero: { type: "string", nullable: true, description: "Número do documento" },
+        numero: {
+          type: "string",
+          nullable: true,
+          description:
+            "Identificador do documento tal como impresso, num só bloco contíguo " +
+            "(ex. FT 2026A17/113). Nunca juntar dois campos do cabeçalho nem " +
+            "prefixar com contadores, páginas ou a posição no ficheiro.",
+        },
         moeda: { type: "string", nullable: true, description: "Código ISO 4217, ex. EUR" },
         data_emissao: { type: "string", nullable: true, description: "AAAA-MM-DD" },
         data_vencimento: { type: "string", nullable: true, description: "AAAA-MM-DD" },

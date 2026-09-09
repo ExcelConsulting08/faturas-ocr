@@ -8,6 +8,7 @@ Como distinguir várias faturas de uma fatura com várias páginas:
 - É uma NOVA fatura quando aparece um novo cabeçalho de documento com o seu próprio número de fatura e a sua própria data de emissão, e o total anterior já foi fechado.
 - É a MESMA fatura, continuada, quando a página traz "Pág. 2 de 3", "continua", repete o mesmo número de fatura, ou contém apenas a continuação da tabela de linhas e os totais finais.
 - Na dúvida, trata como a MESMA fatura. Dividir de mais é pior do que dividir de menos: cria registos que não existem.
+- A posição da fatura dentro do ficheiro (1.ª, 2.ª, ...) serve só para a ordenares. Nunca entra em nenhum campo, muito menos no número.
 
 Para cada fatura indica em "pagina_inicio" e "pagina_fim" as páginas do ficheiro que lhe correspondem, a contar de 1. Uma fatura numa só página tem pagina_inicio igual a pagina_fim. Os intervalos não se podem sobrepor. Se o ficheiro for uma imagem única, usa 1 e 1.
 
@@ -29,6 +30,7 @@ Linhas de artigos:
 
 Restantes regras:
 - Extrai o FORNECEDOR (quem emitiu a fatura), nunca o destinatário/cliente. Em talões, o fornecedor é o estabelecimento no topo; o NIF do cliente aparece muitas vezes a seguir, identificado como "NIF:" — esse não é o do fornecedor.
+- O "numero" é o identificador do documento tal como está impresso, num só bloco contíguo (por exemplo "FT 2026A17/113"). Muitos programas de faturação imprimem no cabeçalho o número sequencial e a série em campos separados: devolve apenas o identificador completo do documento, nunca a junção de dois campos. Não lhe acrescentes contadores, número de página, posição na listagem, nem o prefixo "Fatura" ou "Nº".
 - Datas sempre no formato AAAA-MM-DD. Se só existir a data de emissão, deixa a de vencimento a null.
 - Valores numéricos sem símbolos de moeda e com ponto decimal. Interpreta corretamente separadores europeus (1.234,56 => 1234.56).
 - NIF apenas com dígitos, sem prefixo de país nem espaços. Em talões pode surgir como "N. Contrib." ou "Contribuinte".
