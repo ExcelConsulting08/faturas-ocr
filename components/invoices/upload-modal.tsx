@@ -171,7 +171,14 @@ export function UploadModal({ paises }: { paises: { pais: string; empresa: strin
                           {result.ok ? "✓" : "✕"}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate">{result.fileName}</span>
+                          <span className="block truncate">
+                            {result.fileName}
+                            {result.ok && (result.invoiceCount ?? 1) > 1 ? (
+                              <span className="ml-1.5 rounded bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-700">
+                                {result.invoiceCount} faturas
+                              </span>
+                            ) : null}
+                          </span>
                           {result.message ? (
                             <span className="text-xs text-muted">{result.message}</span>
                           ) : null}

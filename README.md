@@ -12,6 +12,8 @@ SharePoint e recolha automática a partir de caixas de correio por país.
 - **Validação determinística**: checksum de NIF português, IBAN (mod-97) e coerência de datas,
   combinados com a confiança do modelo para decidir se a fatura segue automaticamente ou vai para
   revisão
+- **Vários documentos num só ficheiro**: um PDF com um lote de faturas dá origem a um registo por
+  fatura, cada um com o seu próprio ficheiro (ver [Ficheiros com várias faturas](#ficheiros-com-várias-faturas))
 - **Deteção de duplicados** por fornecedor + número + total
 - **Centros de custo** com regras automáticas por fornecedor
 - **Dashboard** com gastos por mês, por estado, por centro de custo, por país e resumo de IVA
@@ -112,6 +114,32 @@ número e a data são conhecidos. **Se um utilizador corrigir o número, a data 
 renomeado e movido em conformidade** — a ligação nunca se parte, porque é feita pelo
 `sharepoint_item_id` e não pelo caminho. Faturas descartadas são movidas para `_Descartadas` em vez
 de eliminadas, por causa da retenção legal.
+
+## Ficheiros com várias faturas
+
+Um ficheiro — carregado à mão ou recebido por email — pode trazer mais do que uma fatura: um lote
+enviado pelo fornecedor, ou uma digitalização de vários documentos de uma vez. Cada fatura dá
+origem ao **seu próprio registo, com o seu próprio ficheiro**, para depois se comportar em tudo como
+uma fatura que chegou sozinha: renomeia quando o número muda, muda de pasta quando a data muda, é
+confirmada ou descartada isoladamente.
+
+A separação é feita pelo modelo, que indica as páginas de cada fatura. Esses intervalos são depois
+validados: têm de existir, estar dentro do documento, não se sobrepor, e não podem ser mais do que
+as páginas disponíveis.
+
+- **Intervalos válidos** → o PDF é dividido e cada registo fica com as suas páginas.
+- **Intervalos inválidos**, ou uma imagem (que não se divide) → cada registo fica com uma **cópia do
+  documento completo**, nenhum se auto-confirma, e todos ficam com uma nota a explicar porquê.
+
+Perder a divisão é um incómodo; cortar uma fatura ao meio ou dar-lhe as páginas de outra é um erro
+que ninguém deteta a olhar para o registo. Na dúvida, não se divide.
+
+O documento como chegou é sempre preservado e fica acessível em cada registo, no separador
+**Documento completo** do visualizador. Na lista, estas faturas trazem a etiqueta `LOTE`; no
+detalhe, uma barra indica a posição no lote e liga às restantes.
+
+Um ficheiro lido como tendo mais de 25 faturas é rejeitado — a essa altura é mais provável ser um
+erro de leitura do que um lote real.
 
 ## Agendamento da recolha
 

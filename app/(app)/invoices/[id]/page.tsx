@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { FileViewer } from "@/components/invoice-detail/file-viewer";
 import { InvoiceForm } from "@/components/invoice-detail/invoice-form";
+import { SourceDocument, type SiblingInvoice } from "@/components/invoice-detail/source-document";
 import { canWrite, requireOrgContext } from "@/lib/auth/context";
 import { getStorageFor } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
@@ -31,7 +32,19 @@ export default async function InvoiceDetailPage({
 
   if (!invoice) notFound();
 
-  const [costCenters, mailboxes] = await Promise.all([
+  // As "irmãs": as outras faturas que vieram no mesmo documento. Sem
+  // source_group_id não há consulta nenhuma — o caso simples não paga por isto.
+  const irmasQuery = invoice.source_group_id
+    ? supabase
+        .from("invoices")
+        .select("id, numero, source_pages")
+        .eq("organization_id", organization.id)
+        .eq("source_group_id", invoice.source_group_id)
+        .is("discarded_at", null)
+        .returns<SiblingInvoice[]>()
+    : null;
+
+  const [costCenters, mailboxes, irmas] = await Promise.all([
     supabase
       .from("cost_centers")
       .select("*")
@@ -44,6 +57,7 @@ export default async function InvoiceDetailPage({
       .eq("organization_id", organization.id)
       .order("pais")
       .returns<{ pais: string }[]>(),
+    irmasQuery,
   ]);
 
   const storage = getStorageFor(invoice.storage_provider);
@@ -64,6 +78,7 @@ export default async function InvoiceDetailPage({
   ]);
 
   const lineItems = [...(invoice.line_items ?? [])].sort((a, b) => a.posicao - b.posicao);
+  const veioDeLote = Boolean(invoice.source_group_id);
 
   return (
     <div className="flex h-full flex-col">
@@ -77,6 +92,12 @@ export default async function InvoiceDetailPage({
         ) : null}
       </div>
 
+      <SourceDocument
+        atual={invoice.id}
+        irmas={irmas?.data ?? []}
+        paginas={invoice.source_pages}
+      />
+
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2">
         <div className="min-h-[400px] border-r border-border bg-gray-800">
           <FileViewer
@@ -89,12 +110,14 @@ export default async function InvoiceDetailPage({
               originalUrl
                 ? {
                     url: originalUrl,
-                    // O original de uma fatura comprimida é sempre uma imagem.
-                    mimeType: "image/jpeg",
+                    // Num lote, o original é o documento completo e mantém o
+                    // seu tipo; numa fotografia comprimida é sempre uma imagem.
+                    mimeType: veioDeLote ? invoice.mime_type : "image/jpeg",
                     fileName: invoice.file_name,
                   }
                 : null
             }
+            tipoOriginal={veioDeLote ? "documento-origem" : "imagem-comprimida"}
           />
         </div>
 

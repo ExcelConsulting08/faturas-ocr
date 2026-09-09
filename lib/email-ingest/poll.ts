@@ -207,17 +207,25 @@ async function processMessage(
       idioma: mailbox.idioma,
     });
 
-    if (outcome.invoiceId && outcome.status !== "falhada") {
-      summary.invoicesCreated++;
+    const criadas = outcome.status === "falhada" ? 0 : outcome.invoiceIds.length;
+
+    if (criadas > 0) {
+      summary.invoicesCreated += criadas;
     } else {
       summary.skipped++;
     }
 
+    // O registo aponta para a primeira fatura: a chave única é (mensagem,
+    // anexo), e é ela que garante que o anexo nunca é processado duas vezes.
+    // Quando o anexo traz várias faturas, o motivo di-lo.
     await supabase.from("email_ingest_log").insert({
       ...log,
       invoice_id: outcome.invoiceId,
       status: outcome.error ? "erro" : "ingerido",
-      motivo: outcome.error ?? outcome.skippedReason ?? null,
+      motivo:
+        outcome.error ??
+        outcome.skippedReason ??
+        (criadas > 1 ? `${criadas} faturas extraídas deste anexo` : null),
     });
   }
 }

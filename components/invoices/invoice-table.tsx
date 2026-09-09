@@ -77,6 +77,16 @@ export function InvoiceTable({ rows }: { rows: InvoiceListRow[] }) {
                       <span className="max-w-[160px] truncate">{row.numero ?? "—"}</span>
                       {row.is_possible_duplicate ? <Badge tone="amber">DUP</Badge> : null}
                       {row.is_credit_note ? <Badge tone="neutral">NC</Badge> : null}
+                      {row.source_group_id ? (
+                        <Badge
+                          tone="sky"
+                          title={`Uma de ${row.source_invoice_count ?? "várias"} faturas do mesmo documento${
+                            row.source_pages ? `, páginas ${row.source_pages}` : ""
+                          }`}
+                        >
+                          LOTE
+                        </Badge>
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted">{formatDate(row.data_emissao)}</td>

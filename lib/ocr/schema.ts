@@ -10,7 +10,12 @@ export const lineItemSchema = z.object({
   total_linha: z.number().nullable(),
 });
 
-export const extractionSchema = z.object({
+/** Uma fatura. Um ficheiro pode conter várias. */
+export const documentSchema = z.object({
+  /** Primeira página desta fatura no ficheiro, a contar de 1. */
+  pagina_inicio: z.number().nullable(),
+  /** Última página desta fatura (igual a pagina_inicio se ocupa uma só). */
+  pagina_fim: z.number().nullable(),
   fornecedor: z.object({
     nome: z.string().nullable(),
     nif: z.string().nullable(),
@@ -33,7 +38,12 @@ export const extractionSchema = z.object({
   confianca: z.number().min(0).max(1),
 });
 
-export type ExtractionResult = z.infer<typeof extractionSchema>;
+export const extractionSchema = z.object({
+  documentos: z.array(documentSchema).min(1),
+});
+
+export type ExtractionResult = z.infer<typeof documentSchema>;
+export type ExtractionBatch = z.infer<typeof extractionSchema>;
 export type ExtractedLineItem = z.infer<typeof lineItemSchema>;
 
 /**
@@ -41,9 +51,19 @@ export type ExtractedLineItem = z.infer<typeof lineItemSchema>;
  * O Gemini exige `nullable: true` em vez de tipos união, e respeita a ordem
  * declarada em `propertyOrdering`.
  */
-export const geminiResponseSchema = {
+const geminiDocumentSchema = {
   type: "object",
   properties: {
+    pagina_inicio: {
+      type: "integer",
+      nullable: true,
+      description: "Primeira página desta fatura no ficheiro, a contar de 1",
+    },
+    pagina_fim: {
+      type: "integer",
+      nullable: true,
+      description: "Última página desta fatura; igual a pagina_inicio se ocupa uma só",
+    },
     fornecedor: {
       type: "object",
       properties: {
@@ -68,7 +88,7 @@ export const geminiResponseSchema = {
     },
     linhas: {
       type: "array",
-      description: "Linhas de artigos ou serviços",
+      description: "Linhas de artigos ou serviços desta fatura",
       items: {
         type: "object",
         properties: {
@@ -129,11 +149,12 @@ export const geminiResponseSchema = {
     },
     confianca: {
       type: "number",
-      description: "Confiança global na extração, entre 0 e 1",
+      description: "Confiança na extração desta fatura, entre 0 e 1",
     },
   },
-  required: ["fornecedor", "fatura", "linhas", "linhas_incluem_iva", "totais", "confianca"],
-  propertyOrdering: [
+  required: [
+    "pagina_inicio",
+    "pagina_fim",
     "fornecedor",
     "fatura",
     "linhas",
@@ -141,4 +162,29 @@ export const geminiResponseSchema = {
     "totais",
     "confianca",
   ],
+  propertyOrdering: [
+    "pagina_inicio",
+    "pagina_fim",
+    "fornecedor",
+    "fatura",
+    "linhas",
+    "linhas_incluem_iva",
+    "totais",
+    "confianca",
+  ],
+};
+
+export const geminiResponseSchema = {
+  type: "object",
+  properties: {
+    documentos: {
+      type: "array",
+      description:
+        "Uma entrada por fatura encontrada no ficheiro. Quase sempre uma só; " +
+        "vários quando o ficheiro junta faturas distintas.",
+      items: geminiDocumentSchema,
+    },
+  },
+  required: ["documentos"],
+  propertyOrdering: ["documentos"],
 };

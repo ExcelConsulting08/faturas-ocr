@@ -115,6 +115,13 @@ export interface Invoice {
   is_possible_duplicate: boolean;
   duplicate_of_invoice_id: string | null;
 
+  /** Partilhado pelas faturas extraídas do mesmo ficheiro. Null se veio sozinha. */
+  source_group_id: string | null;
+  /** Páginas do documento de origem que deram esta fatura, ex. "3-4". */
+  source_pages: string | null;
+  /** Quantas faturas saíram do documento de origem. */
+  source_invoice_count: number | null;
+
   discarded_at: string | null;
   confirmed_at: string | null;
   confirmed_by: string | null;

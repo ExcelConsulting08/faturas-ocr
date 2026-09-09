@@ -12,33 +12,55 @@ export interface ViewerSource {
 }
 
 /**
+ * O que é a segunda vista: a fotografia antes de ser reduzida para envio, ou o
+ * documento completo de onde esta fatura foi separada. São situações
+ * diferentes e o rótulo tem de as distinguir — quem vê "Original" num lote
+ * precisa de saber que vai abrir o documento inteiro, com as outras faturas.
+ */
+export type OriginKind = "imagem-comprimida" | "documento-origem";
+
+const ROTULOS: Record<OriginKind, { aba: string; atual: string; outra: string }> = {
+  "imagem-comprimida": {
+    aba: "Original",
+    atual: "Versão reduzida que foi lida pelo motor de extração",
+    outra: "Fotografia tal como foi carregada",
+  },
+  "documento-origem": {
+    aba: "Documento completo",
+    atual: "Apenas as páginas desta fatura",
+    outra: "O documento como chegou, com todas as faturas",
+  },
+};
+
+/**
  * O URL vem pré-autenticado e de curta duração, resolvido no servidor.
  * O browser trata da renderização (PDF nativo ou imagem), sem bibliotecas extra.
  */
 export function FileViewer({
   enviada,
   original,
+  tipoOriginal = "imagem-comprimida",
 }: {
   enviada: ViewerSource;
   original: ViewerSource | null;
+  tipoOriginal?: OriginKind;
 }) {
   const [vista, setVista] = useState<"enviada" | "original">("enviada");
   const atual = vista === "original" && original ? original : enviada;
+  const rotulos = ROTULOS[tipoOriginal];
 
   return (
     <div className="flex h-full flex-col">
       {original?.url ? (
         <div className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-3 py-2">
           <Aba ativa={vista === "enviada"} onClick={() => setVista("enviada")}>
-            Processada
+            {tipoOriginal === "documento-origem" ? "Esta fatura" : "Processada"}
           </Aba>
           <Aba ativa={vista === "original"} onClick={() => setVista("original")}>
-            Original
+            {rotulos.aba}
           </Aba>
           <span className="ml-2 text-xs text-muted">
-            {vista === "enviada"
-              ? "Versão reduzida que foi lida pelo motor de extração"
-              : "Fotografia tal como foi carregada"}
+            {vista === "enviada" ? rotulos.atual : rotulos.outra}
           </span>
         </div>
       ) : null}

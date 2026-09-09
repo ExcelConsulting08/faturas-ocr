@@ -16,6 +16,8 @@ export interface UploadResult {
   message?: string;
   /** Permite ao browser enviar a seguir a imagem original para esta fatura. */
   invoiceId?: string;
+  /** Quantas faturas saíram deste ficheiro — normalmente uma. */
+  invoiceCount?: number;
 }
 
 export async function uploadInvoices(formData: FormData): Promise<UploadResult[]> {
@@ -47,11 +49,17 @@ export async function uploadInvoices(formData: FormData): Promise<UploadResult[]
       createdBy: member.user_id,
     });
 
+    const varias = outcome.invoiceIds.length > 1;
+
     results.push({
       fileName: file.name,
       ok: outcome.status !== "falhada",
-      message: outcome.error ?? outcome.skippedReason,
+      message:
+        outcome.error ??
+        outcome.skippedReason ??
+        (varias ? `${outcome.invoiceIds.length} faturas encontradas neste ficheiro` : undefined),
       invoiceId: outcome.invoiceId ?? undefined,
+      invoiceCount: outcome.invoiceIds.length,
     });
   }
 

@@ -46,10 +46,16 @@ const NATIVE_TYPES = new Set([
 /** Formatos que convertemos para PNG antes de enviar. */
 const CONVERTIBLE_TYPES = new Set(["image/tiff"]);
 
-export interface ExtractionOutcome {
-  result: ExtractionResult | null;
+/** Uma fatura extraída, já validada e pontuada. */
+export interface ExtractedInvoice {
+  result: ExtractionResult;
   confidence: number;
   validationFlags: ValidationFlags;
+}
+
+export interface ExtractionOutcome {
+  /** Uma entrada por fatura encontrada no ficheiro. Vazio quando falhou. */
+  invoices: ExtractedInvoice[];
   raw: unknown;
   error: string | null;
   simulated: boolean;
@@ -59,12 +65,19 @@ export function isExtractionEngineReady(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
+/** Base das saídas de falha: nenhuma fatura extraída, e não foi simulação. */
+const FALHA_VAZIA: Pick<ExtractionOutcome, "invoices" | "simulated"> = {
+  invoices: [],
+  simulated: false,
+};
+
 export async function extractInvoice(options: {
   buffer: Buffer;
   mimeType: string;
   fileName: string;
   pais?: string | null;
   idioma?: string | null;
+  pageCount?: number | null;
 }): Promise<ExtractionOutcome> {
   if (!isExtractionEngineReady()) {
     return simulatedExtraction(options.fileName);
@@ -101,48 +114,27 @@ export async function extractInvoice(options: {
     usedModel = modelo;
     const text = response.text;
     if (!text) {
-      return {
-        result: null,
-        confidence: 0,
-        validationFlags: {},
-        raw: response,
-        error: "O modelo não devolveu conteúdo",
-        simulated: false,
-      };
+      return { ...FALHA_VAZIA, raw: response, error: "O modelo não devolveu conteúdo" };
     }
 
     let parsedJson: unknown;
     try {
       parsedJson = JSON.parse(text);
     } catch {
-      return {
-        result: null,
-        confidence: 0,
-        validationFlags: {},
-        raw: text,
-        error: "A resposta do modelo não é JSON válido",
-        simulated: false,
-      };
+      return { ...FALHA_VAZIA, raw: text, error: "A resposta do modelo não é JSON válido" };
     }
 
     const parsed = extractionSchema.safeParse(parsedJson);
     if (!parsed.success) {
       return {
-        result: null,
-        confidence: 0,
-        validationFlags: {},
+        ...FALHA_VAZIA,
         raw: parsedJson,
         error: `Resposta fora do esquema esperado: ${parsed.error.issues[0]?.message ?? "desconhecido"}`,
-        simulated: false,
       };
     }
 
-    const validationFlags = validate(parsed.data);
-
     return {
-      result: parsed.data,
-      confidence: scoreConfidence(parsed.data.confianca, validationFlags),
-      validationFlags,
+      invoices: parsed.data.documentos.map(pontuar),
       // Guardar o modelo usado permite perceber, mais tarde, se uma leitura
       // duvidosa veio do modelo preferido ou de um de recurso.
       raw: { modelo: usedModel, ...(parsedJson as object) },
@@ -150,15 +142,18 @@ export async function extractInvoice(options: {
       simulated: false,
     };
   } catch (error) {
-    return {
-      result: null,
-      confidence: 0,
-      validationFlags: {},
-      raw: null,
-      error: mensagemDeErro(error),
-      simulated: false,
-    };
+    return { ...FALHA_VAZIA, raw: null, error: mensagemDeErro(error) };
   }
+}
+
+/** Valida uma fatura extraída e converte a confiança do modelo na nossa. */
+function pontuar(result: ExtractionResult): ExtractedInvoice {
+  const validationFlags = validate(result);
+  return {
+    result,
+    confidence: scoreConfidence(result.confianca, validationFlags),
+    validationFlags,
+  };
 }
 
 /**
@@ -337,6 +332,8 @@ function simulatedExtraction(fileName: string): ExtractionOutcome {
   const emissao = new Date(hoje.getFullYear(), hoje.getMonth(), 1 + (seed % 27));
 
   const result: ExtractionResult = {
+    pagina_inicio: 1,
+    pagina_fim: 1,
     fornecedor: {
       nome: `Fornecedor Simulado ${(seed % 50) + 1}`,
       nif: "500000000",
@@ -368,9 +365,7 @@ function simulatedExtraction(fileName: string): ExtractionOutcome {
   };
 
   return {
-    result,
-    confidence: SIMULATED_CONFIDENCE,
-    validationFlags: validate(result),
+    invoices: [{ result, confidence: SIMULATED_CONFIDENCE, validationFlags: validate(result) }],
     raw: { simulado: true },
     error: null,
     simulated: true,
