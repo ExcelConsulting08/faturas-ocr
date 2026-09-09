@@ -49,3 +49,8 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# Notas pessoais, fora do produto. Este repositorio e publico: nada de
+# credenciais, tokens ou apontamentos privados aqui dentro.
+/Excel_Consulting/
+/Plugins.txt
